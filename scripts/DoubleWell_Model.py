@@ -38,7 +38,7 @@ class DoubleWell_1D():
     def is_off(self, traj):
         """
         Checks for off-states in a set of trajectories.
-        Off-state = right equibrium point of the bistable system
+        Off-state = right equilibrium point of the bistable system
 
         Parameters
         ----------
@@ -54,7 +54,11 @@ class DoubleWell_1D():
         distance_to_off = traj[...,1]-self.off
         return (distance_to_off >= 0)
     
-    
+    def potential(self, t,x,mu):
+        """
+        The potential of the system at a given state.
+        """
+        return x**4/4 - x**2/2 - mu*x*t
     
 
     def force(self, t, x, mu):
@@ -110,6 +114,10 @@ class DoubleWell_1D():
             The computed trajectories.
 
         """
+
+        # check if our model is valid
+        assert mu*T_max <= 0.25, "Time dependence of V(t) too strong: Would need different model"
+
         simulated_trajectories = np.zeros((N_traj, T_max, 2))
         
         for i in range(N_traj):

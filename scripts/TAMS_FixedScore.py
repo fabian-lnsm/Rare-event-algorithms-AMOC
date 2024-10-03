@@ -3,6 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 
@@ -28,6 +29,8 @@ class TAMS_prescribed():
         seed : int, optional
             Seed for the random number generator.
         """
+        if type(Tmax) != int:
+            raise ValueError("Tmax must be an integer.")
         self.model, self.scorefunc = model, scorefunc
         self.params = params
         self.N, self.Tmax = N_traj, Tmax
@@ -36,7 +39,7 @@ class TAMS_prescribed():
     def reset_seed(self, seed):
         self.rng.bit_generator.state = np.random.PCG64(seed).state
     
-    def run(self, ic, nc : int):
+    def run(self, ic : np.ndarray, nc : int):
         """
         The TAMS algorithm.
         
@@ -64,6 +67,7 @@ class TAMS_prescribed():
         # Initial pool of trajectories
         traj = self.model.trajectory(self.N, self.Tmax, *self.params.values(),
                                        init_state=ic)
+        
         
         # Initial number of timesteps
         Nt = traj.shape[1]
@@ -154,14 +158,13 @@ class TAMS_prescribed():
         probabilities : np.ndarray of shape (nb_runs,)
             The transition probability for each run.
         """
-        from tqdm import trange
         rng_model = np.random.default_rng(seed=23)
         seeds_model = rng_model.choice(100, size=nb_runs, replace=False)
         probabilities = np.zeros(nb_runs)
-        for r in trange(nb_runs):
-            model.rng.bit_generator.state = np.random.PCG64(seeds_model[r]).state
+        for run in range(nb_runs):
+            model.rng.bit_generator.state = np.random.PCG64(seeds_model[run]).state
             probability, _, _, _, _ = self.run(ic, nc)
-            probabilities[r] = probability
+            probabilities[run] = probability
         return probabilities
     
  
@@ -175,7 +178,7 @@ if __name__ == "__main__":
 
     # Set up the simulation
     nc = 10 
-    nb_runs=2 
+    nb_runs=1
     N_traj = 1000 
     tmax = 100 
     dt=0.01 
@@ -188,7 +191,7 @@ if __name__ == "__main__":
 
     # Print and save the simulation parameters
     print('-----------Simulation parameters------------------')
-    print('Number of runs: ',nb_runs)
+    print('Number of runs per initial condition: ',nb_runs)
     print('Number of trajectories: ',N_traj)
     print('Discarded per iteration: ',nc)
     print('Length of trajectories: ',tmax)
@@ -207,13 +210,22 @@ if __name__ == "__main__":
         f.write(f'Noise factor: {noise_factor} \n')
 
 
-    ### RUN TAMS 
-    initial_condition = [0.0,-1.0] #initial condition for [time,x]
-    t_sim = tmax - initial_condition[0]
-    tams = TAMS_prescribed(N_traj, t_sim, C_model, scorefunc, params={"dt":dt,"mu":mu,"noise":noise_factor})
-    probabilities = tams.run_multiple(nb_runs, initial_condition, nc, C_model)
-    with open(filepath+'simulationTAMS.txt', 'a') as f:
-        f.write(f'{initial_condition} {np.mean(probabilities):.8f} {np.std(probabilities):.8f} \n')
+    ### run tams for a grid of initial conditions
+    initial_times = np.arange(0, tmax-5, 5)
+    print(initial_times)
+    initial_positions = np.arange(-1.0, 0.4, 0.1)
+    print(initial_positions)
+    T,P = np.meshgrid(initial_times, initial_positions)
+    with tqdm(total=T.shape[0] * T.shape[1]) as pbar:
+        for i in range(T.shape[0]):
+            for j in range(T.shape[1]):
+                initial_condition = np.array([T[i,j], P[i,j]])
+                t_sim = int(tmax - initial_condition[0])
+                tams = TAMS_prescribed(N_traj, t_sim, C_model, scorefunc, params={"dt":dt,"mu":mu,"noise":noise_factor})
+                probabilities = tams.run_multiple(nb_runs, initial_condition, nc, C_model)
+                with open(filepath+'simulationTAMS.txt', 'a') as f:
+                    f.write(f'{initial_condition}; {np.mean(probabilities):.8f}; {np.std(probabilities):.8f} \n')
+                pbar.update(1)
         
     
 

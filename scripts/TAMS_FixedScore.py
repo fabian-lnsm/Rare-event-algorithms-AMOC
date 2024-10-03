@@ -36,30 +36,19 @@ class TAMS_prescribed():
     def reset_seed(self, seed):
         self.rng.bit_generator.state = np.random.PCG64(seed).state
     
-    def run(self, ic, nc=10, write_params=False, save_plots=False):
+    def run(self, ic, nc : int):
         """
         The TAMS algorithm.
         
         Parameters
         ----------
-        ic : list
-            Initial condition for each trajectory. It is a list of shape (2).
-        nc : int, optional
-            Number of clones deleted at each iteration. The default is 10.
+        ic : np.ndarray of shape (2,)
+            Initial condition for each trajectory. Must be the same for every trajectory.
+        nc : int
+            Number of clones deleted at each iteration.
         """
 
-        # write the parameters to a text file
-        if write_params:
-            with open('../results/figures/parameters.txt', 'w') as f:
-                f.write('Seed: '+str(self.rng.bit_generator.state['state']['state'])+'\n')
-                f.write('Number of trajectories: '+str(self.N)+'\n')
-                f.write('Length of trajectories: '+str(self.Tmax)+'\n')
-                f.write('Time step of the simulation: '+str(self.params['dt'])+'\n')
-                f.write('Coupling parameter: '+str(self.params['mu'])+'\n')
-                f.write('Noise factor: '+str(self.params['noise'])+'\n')
-                f.write('Initial condition: '+str(ic)+'\n')
-                f.write('Number of discarded per iteration: '+str(nc)+'\n')
-
+        
         # Initial weights
         k, w = 0, 1
         
@@ -67,9 +56,7 @@ class TAMS_prescribed():
         ic = np.tile(ic, (self.N, 1))
 
         # Give a warning if n_c and N are not compatible
-        if nc <= 0.05*self.N:
-            print("Warning: nc is quite small compared to N.")
-        if nc >= 0.2*self.N:
+        if nc > 0.1*self.N:
             print("Warning: nc is quite large compared to N.")
 
 
@@ -95,17 +82,6 @@ class TAMS_prescribed():
         # Loop until you cannot discard nc trajectories anymore
         while len(np.unique(Q))>nc:
 
-            # Save the trajectories
-            if save_plots:
-                fig, ax = plt.subplots()
-                for i in range(N):
-                    ax.plot(traj[i,:,0],traj[i,:,1],label='Trajectory '+str(i))
-                ax.set_xlabel('Time')
-                ax.set_ylabel('Position x')
-                ax.grid(True)
-                ax.legend()
-                fig.savefig('../results/figures/TAMS_FixedScore_'+str(k)+'.png')
-                plt.close(fig)
 
             # Find the nc trajectories with the lowest score
             threshold = np.unique(Q)[nc-1] #Because Python counts from 0
@@ -160,60 +136,90 @@ class TAMS_prescribed():
         #        the number of timesteps and the trajectories
         return w*np.count_nonzero(Q>=1)/self.N, k, np.count_nonzero(Q>=1), nb_total_timesteps, traj
     
+    def run_multiple(self, nb_runs, ic, nc, model):
+        """
+        Run the TAMS algorithm multiple times.
+        
+        Parameters
+        ----------
+        nb_runs : int
+            Number of runs.
+        ic : np.ndarray of shape (2,)
+            Initial condition for each trajectory. Must be the same for every trajectory.
+        nc : int
+            Number of clones deleted at each iteration.
+
+        Returns
+        -------
+        probabilities : np.ndarray of shape (nb_runs,)
+            The transition probability for each run.
+        """
+        from tqdm import trange
+        rng_model = np.random.default_rng(seed=23)
+        seeds_model = rng_model.choice(100, size=nb_runs, replace=False)
+        probabilities = np.zeros(nb_runs)
+        for r in trange(nb_runs):
+            model.rng.bit_generator.state = np.random.PCG64(seeds_model[r]).state
+            probability, _, _, _, _ = self.run(ic, nc)
+            probabilities[r] = probability
+        return probabilities
+    
+ 
+    
 if __name__ == "__main__":
     
     from DoubleWell_Model import DoubleWell_1D
     from Score_Function import x_coord
     from plot_functions import plot_DoubleWell
-    from tqdm import trange
-    import time
 
 
-    # Various TAMS parameters
-    nc = 10 #number of discarded per iteration
-    nb_runs=1 #number of full TAMS runs
-    N = 100 #number of trajectories per run
-    tmax = 500 #maximum length of trajectories in model time units
-    dt=0.01 #time step of the simulation in model time units
-    mu=0.001 #coupling parameter in the model
-    noise_factor=0.25 #noise parameter in the model
-    initial_condition = [0.0,-1.0] #initial condition for [time,x]
+    # Set up the simulation
+    nc = 10 
+    nb_runs=2 
+    N_traj = 1000 
+    tmax = 100 
+    dt=0.01 
+    mu=0.003 
+    noise_factor=0.1 
+    filepath = '../results/outputs/'
+    C_model=DoubleWell_1D()
+    scorefunc = x_coord(C_model)
+    
 
-    # save plots displaying the double well potential
-    """
-    plot_DoubleWell(t=0, mu=mu).plot()
-    plot_DoubleWell(t=tmax/2, mu=mu).plot()
-    plot_DoubleWell(t=tmax, mu=mu).plot()
-    """
-
-
-    #set up the model and algorithm
-    C_model=DoubleWell_1D(on_state = -1.0)
-    scorefunc = x_coord(C_model,init_state=initial_condition)
-    tams = TAMS_prescribed(N, tmax, C_model, scorefunc, params={"dt":dt,"mu":mu,"noise":noise_factor})
-    rng_model = np.random.default_rng(seed=23)
-    seeds_model = rng_model.choice(100, size=nb_runs, replace=False)
-
-    # Print the simulation parameters
+    # Print and save the simulation parameters
     print('-----------Simulation parameters------------------')
-    print('Number of trajectories: ',N)
+    print('Number of runs: ',nb_runs)
+    print('Number of trajectories: ',N_traj)
+    print('Discarded per iteration: ',nc)
     print('Length of trajectories: ',tmax)
     print('Time step of the simulation: ',dt)
     print('Coupling parameter: ',mu)
     print('Noise factor: ',noise_factor)
+    with open(filepath+'simulationTAMS.txt', 'a') as f:
+        f.write(' \n')
+        f.write(f'Simulation parameters: \n')
+        f.write(f'Number of runs: {nb_runs} \n')
+        f.write(f'Number of trajectories: {N_traj} \n')
+        f.write(f'Discarded per iteration: {nc} \n')
+        f.write(f'Length of trajectories: {tmax} \n')
+        f.write(f'Time step of the simulation: {dt} \n')
+        f.write(f'Coupling parameter: {mu} \n')
+        f.write(f'Noise factor: {noise_factor} \n')
 
-    ### RUN TAMS
-    for r in trange(nb_runs):
-        C_model.rng.bit_generator.state = np.random.PCG64(seeds_model[r]).state
-        probability, tams_iterations, transition, timesteps, trajectories = \
-            tams.run(initial_condition, nc=nc,write_params=False,save_plots=False)
+
+    ### RUN TAMS 
+    initial_condition = [0.0,-1.0] #initial condition for [time,x]
+    t_sim = tmax - initial_condition[0]
+    tams = TAMS_prescribed(N_traj, t_sim, C_model, scorefunc, params={"dt":dt,"mu":mu,"noise":noise_factor})
+    probabilities = tams.run_multiple(nb_runs, initial_condition, nc, C_model)
+    with open(filepath+'simulationTAMS.txt', 'a') as f:
+        f.write(f'{initial_condition} {np.mean(probabilities):.8f} {np.std(probabilities):.8f} \n')
         
-        # Print the simulation results
-        print('----------------Simulation results-----------------')
-        print("Number of iterations: ", tams_iterations)
-        print("Number of simulated timesteps: ", timesteps)
-        print("Number of trajectories that transitioned: ", transition)
-        print("Probability of transition: ", probability)
+    
+
+    
+        
+
 
         
 

@@ -1,4 +1,6 @@
 
+import numpy as np
+import matplotlib.pyplot as plt
 
 class plot_DoubleWell():
     def __init__(self, t, mu):
@@ -18,9 +20,25 @@ class plot_DoubleWell():
         fig.savefig(f'../results/figures/DoubleWell_potential_t_{self.t:.0f}'+'.png')
 
     
+class plot_trajectories():
+    def __init__(self, traj, params: dict, filename: str):
+        self.traj = traj
+        self.params = params
+        self.filename = filename
+    
+    def plot(self):
+        fig,ax = plt.subplots(dpi=200)
+        fig.suptitle(str(self.params))
+        for i in range(self.traj.shape[0]):
+            ax.plot(self.traj[i,:,0], self.traj[i,:,1], label='Trajectory '+str(i+1))
+        ax.set_xlabel('Time t')
+        ax.set_ylabel('Position x')
+        ax.grid()
+        #ax.legend()
+        fig.savefig(self.filename)
+
 if __name__ == "__main__":
-    import numpy as np
-    import matplotlib.pyplot as plt
+
 
     t = 250
     mu = 0.001

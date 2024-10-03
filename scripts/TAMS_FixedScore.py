@@ -178,7 +178,7 @@ if __name__ == "__main__":
 
     # Set up the simulation
     nc = 10 
-    nb_runs=1
+    nb_runs=10
     N_traj = 1000 
     tmax = 100 
     dt=0.01 
@@ -212,9 +212,9 @@ if __name__ == "__main__":
 
     ### run tams for a grid of initial conditions
     initial_times = np.arange(0, tmax-5, 5)
-    print(initial_times)
+    #print(initial_times)
     initial_positions = np.arange(-1.0, 0.4, 0.1)
-    print(initial_positions)
+    #print(initial_positions)
     T,P = np.meshgrid(initial_times, initial_positions)
     with tqdm(total=T.shape[0] * T.shape[1]) as pbar:
         for i in range(T.shape[0]):
@@ -224,7 +224,7 @@ if __name__ == "__main__":
                 tams = TAMS_prescribed(N_traj, t_sim, C_model, scorefunc, params={"dt":dt,"mu":mu,"noise":noise_factor})
                 probabilities = tams.run_multiple(nb_runs, initial_condition, nc, C_model)
                 with open(filepath+'simulationTAMS.txt', 'a') as f:
-                    f.write(f'{initial_condition}; {np.mean(probabilities):.8f}; {np.std(probabilities):.8f} \n')
+                    f.write(f'{initial_condition[0]:.1f};{initial_condition[1]:.1f};{np.mean(probabilities):.10f};{np.std(probabilities):.10f}\n')
                 pbar.update(1)
         
     

@@ -213,7 +213,7 @@ if __name__ == "__main__":
     ### run tams for a grid of initial conditions
     initial_times = np.arange(0, tmax-5, 5)
     #print(initial_times)
-    initial_positions = np.arange(-1.0, 0.4, 0.1)
+    initial_positions = np.arange(-1.0, -0.5, 0.05)
     #print(initial_positions)
     T,P = np.meshgrid(initial_times, initial_positions)
     with tqdm(total=T.shape[0] * T.shape[1]) as pbar:

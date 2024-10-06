@@ -1,21 +1,17 @@
-
-
 import numpy as np
 
 
-class DoubleWell_1D():
+class DoubleWell_1D:
     """
     Class implementing the Double-Well model in 1D.
     Note: We simulate trajectories from left to right equilibrium point = from on to off
     """
-    
+
     def __init__(self, on_state=-1.0, seed=None):
 
         self.rng = np.random.Generator(np.random.PCG64(seed))
         self.on = on_state
-        self.off= -on_state
-
-        
+        self.off = -on_state
 
     def is_on(self, traj):
         """
@@ -32,10 +28,9 @@ class DoubleWell_1D():
         Every on-state is replaced with 1, all other states are replaced with 0
 
         """
-        distance_to_on = traj[...,1]-self.on
-        return (distance_to_on <= 0) 
+        distance_to_on = traj[..., 1] - self.on
+        return distance_to_on <= 0
 
-        
     def is_off(self, traj):
         """
         Checks for off-states in a set of trajectories.
@@ -44,16 +39,16 @@ class DoubleWell_1D():
         Parameters
         ----------
         traj : shape (Number of trajectories, timesteps, 2)
-            
+
         Returns
         -------
         An array of shape (Number of trajectories, timesteps)
         Every off-state is replaced with 1, all other states are replaced with 0
 
         """
-        distance_to_off = traj[...,1]-self.off
-        return (distance_to_off >= 0)
-    
+        distance_to_off = traj[..., 1] - self.off
+        return distance_to_off >= 0
+
     def number_of_transitioned_traj(self, traj):
         """
         Returns the number of transitioned trajectories.
@@ -66,27 +61,26 @@ class DoubleWell_1D():
         -------
         int : The number of trajectories that transitioned from on to off.
         """
-        sum=np.sum(self.is_off(traj), axis=1)
+        sum = np.sum(self.is_off(traj), axis=1)
         transitions = np.sum(sum > 0)
         return transitions
-    
 
-    def potential(self, t,x,mu):
+    def potential(self, t, x, mu):
         """
         The potential of the system at a given state.
         """
-        return x**4/4 - x**2/2 - mu*x*t
-    
+        return x**4 / 4 - x**2 / 2 - mu * x * t
 
     def force(self, t, x, mu):
         """
         The force of the system at a given state.
         """
-        return -x**3 + x + mu * t
-    
-    
-    def euler_maruyama(self, t : np.ndarray, x : np.ndarray, dt: float, mu: float, noise_term: np.ndarray):
-        '''
+        return -(x**3) + x + mu * t
+
+    def euler_maruyama(
+        self, t: np.ndarray, x: np.ndarray, dt: float, mu: float, noise_term: np.ndarray
+    ):
+        """
         Standard Euler-Maruyama integration scheme for the Double-Well model.
 
         Parameters
@@ -106,14 +100,21 @@ class DoubleWell_1D():
         -------
         t_new : np.ndarray of shape (N_traj,)
         x_new : np.ndarray of shape (N_traj,)
-        '''
+        """
         t_new = t + dt
         drift = self.force(t, x, mu) * dt
         x_new = x + drift + noise_term
         return t_new, x_new
-    
 
-    def trajectory(self, N_traj : int, T_max : int, dt : float, mu : float, noise_factor: float, init_state : np.ndarray):
+    def trajectory(
+        self,
+        N_traj: int,
+        T_max: int,
+        dt: float,
+        mu: float,
+        noise_factor: float,
+        init_state: np.ndarray,
+    ):
         """
         Compute trajectories of the system of fixed length using standard Euler integration.
 
@@ -140,63 +141,75 @@ class DoubleWell_1D():
         """
 
         n_steps = int(T_max / dt)
-        trajectories = np.zeros((N_traj,n_steps,2))
-        t = init_state[:,0]
-        x = init_state[:,1]
-        trajectories[:,0,0] = t
-        trajectories[:,0,1] = x
-        noise = noise_factor * self.rng.normal(loc=0.0, scale=np.sqrt(dt), size=(N_traj, n_steps))
-        for i in range(1,n_steps):
+        trajectories = np.zeros((N_traj, n_steps, 2))
+        t = init_state[:, 0]
+        x = init_state[:, 1]
+        trajectories[:, 0, 0] = t
+        trajectories[:, 0, 1] = x
+        noise = noise_factor * self.rng.normal(
+            loc=0.0, scale=np.sqrt(dt), size=(N_traj, n_steps)
+        )
+        for i in range(1, n_steps):
             t, x = self.euler_maruyama(t, x, dt, mu, noise[:, i])
-            trajectories[:,i,0] = t
-            trajectories[:,i,1] = x
+            trajectories[:, i, 0] = t
+            trajectories[:, i, 1] = x
 
         # Downsample the trajectory to return model time units
-        i=int(1/dt)
-        trajectories = trajectories[:,::i,:]
+        i = int(1 / dt)
+        trajectories = trajectories[:, ::i, :]
         return trajectories
 
 
-    
 if __name__ == "__main__":
-    
-    
+
     import time
 
-    # set up the simulation 
+    # set up the simulation
     model = DoubleWell_1D()
-    N_traj = 10000 #number of trajectories per run
-    tmax = 100 #maximum length of trajectories in model time units
-    dt=0.01 #time step of the simulation in model time units
-    mu=0.005 #coupling parameter in the model
-    noise_factor=0.1 #noise parameter in the model
-    file_string = '../results/outputs/simulationMC.txt'
-    params = {'N_traj': N_traj, 'T_max': tmax, 'dt': dt, 'mu': mu, 'noise_factor': noise_factor}
-    with open(file_string, 'a') as f:
-        f.write(' \n Simulation parameters: \n')
-        f.write(str(params)+'\n'+ '\n')
+    N_traj = 10000  # number of trajectories per run
+    tmax = 100  # maximum length of trajectories in model time units
+    dt = 0.01  # time step of the simulation in model time units
+    mu = 0.005  # coupling parameter in the model
+    noise_factor = 0.1  # noise parameter in the model
+    file_string = "../results/outputs/simulationMC.txt"
+    params = {
+        "N_traj": N_traj,
+        "T_max": tmax,
+        "dt": dt,
+        "mu": mu,
+        "noise_factor": noise_factor,
+    }
+    with open(file_string, "a") as f:
+        f.write(" \n Simulation parameters: \n")
+        f.write(str(params) + "\n" + "\n")
         f.write("Results: \n \n")
         f.write("IC Probability \n")
 
     # set initial conditions
-    initial_condition = [0.0,-1.0] #initial condition for [time,x]
-    initial_condition = np.tile(initial_condition, (N_traj, 1)) #turn into array of shape (N_traj,2)
+    initial_condition = [0.0, -1.0]  # initial condition for [time,x]
+    initial_condition = np.tile(
+        initial_condition, (N_traj, 1)
+    )  # turn into array of shape (N_traj,2)
 
     # run the simulation
     time_start = time.time()
     traj = model.trajectory(N_traj, tmax, dt, mu, noise_factor, initial_condition)
-    probabilities = model.number_of_transitioned_traj(traj)/N_traj
-    with open(file_string, 'a') as f:
+    probabilities = model.number_of_transitioned_traj(traj) / N_traj
+    with open(file_string, "a") as f:
         f.write(f"{initial_condition[0,:]} {probabilities:.5f} \n")
     time_end = time.time()
-    print('Time elapsed: ', time_end-time_start)
-    print('Probability of transition: ', probabilities)
+    print("Time elapsed: ", time_end - time_start)
+    print("Probability of transition: ", probabilities)
 
-
-    
     # plot the resulting trajectories
     from plot_functions import plot_trajectories
-    params = {'N_traj': N_traj, 'T_max': tmax, 'dt': dt, 'mu': mu, 'noise_factor': noise_factor}
-    filename = '../results/figures/trajectoriesMC.png'
-    plot_trajectories(traj,params,filename).plot()
-    
+
+    params = {
+        "N_traj": N_traj,
+        "T_max": tmax,
+        "dt": dt,
+        "mu": mu,
+        "noise_factor": noise_factor,
+    }
+    filename = "../results/figures/trajectoriesMC.png"
+    plot_trajectories(traj, params, filename).plot()

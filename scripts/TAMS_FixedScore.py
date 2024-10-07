@@ -183,11 +183,13 @@ if __name__ == "__main__":
     nc = 10
     nb_runs = 10
     N_traj = 1000
-    tmax = 100
+    tmax = 10
     dt = 0.01
-    mu = 0.003
+    mu = 0.03
     noise_factor = 0.1
     filepath = "../results/outputs/"
+    filename = "simulationTAMS.txt"
+    write_mode = "w"
     C_model = DoubleWell_1D()
     scorefunc = x_coord(C_model)
 
@@ -200,7 +202,7 @@ if __name__ == "__main__":
     print("Time step of the simulation: ", dt)
     print("Coupling parameter: ", mu)
     print("Noise factor: ", noise_factor)
-    with open(filepath + "simulationTAMS.txt", "a") as f:
+    with open(filepath + filename, write_mode) as f:
         f.write(f"Nb_runs: {nb_runs} \n")
         f.write(f"N_traj: {N_traj} \n")
         f.write(f"n_disc: {nc} \n")
@@ -210,16 +212,17 @@ if __name__ == "__main__":
         f.write(f"noise_factor: {noise_factor} \n")
 
     ### run tams for a grid of initial conditions
-    initial_times = np.arange(0, tmax / 2 - 10, 2)
-    # print(initial_times)
-    initial_positions = np.arange(-1.0, -0.8, 0.05)
-    # print(initial_positions)
+    initial_times = np.arange(3, 11, 0.2) #tmax10
+    # tmax2: initial_times = np.arange(15, 22, 0.25) #tmax2
+    initial_positions = np.arange(-1.0, -0.6, 0.01) #tmax10
+    # tmax2: initial_positions = np.arange(-0.1, 0.4, 0.005) #tmax2
     T, P = np.meshgrid(initial_times, initial_positions)
     with tqdm(total=T.shape[0] * T.shape[1]) as pbar:
         for i in range(T.shape[0]):
             for j in range(T.shape[1]):
                 initial_condition = np.array([T[i, j], P[i, j]])
-                t_sim = int(tmax - initial_condition[0])
+                #t_sim = int(tmax - initial_condition[0])
+                t_sim = tmax #see if this works
                 tams = TAMS_prescribed(
                     N_traj,
                     t_sim,
@@ -230,7 +233,7 @@ if __name__ == "__main__":
                 probabilities = tams.run_multiple(
                     nb_runs, initial_condition, nc, C_model
                 )
-                with open(filepath + "simulationTAMS.txt", "a") as f:
+                with open(filepath + filename, "a") as f:
                     f.write(
                         f"{initial_condition[0]:.1f};{initial_condition[1]:.1f};{np.mean(probabilities):.10f};{np.std(probabilities):.10f}\n"
                     )

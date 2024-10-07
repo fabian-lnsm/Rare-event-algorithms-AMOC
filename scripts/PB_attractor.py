@@ -3,7 +3,7 @@ from DoubleWell_Model import DoubleWell_1D
 
 
 class PB_attractor:
-    def __init__(self, model, mu, noise_factor):
+    def __init__(self, model, mu, noise_factor=0):
         self.model = model
         self.mu = mu
         self.noise_factor = noise_factor

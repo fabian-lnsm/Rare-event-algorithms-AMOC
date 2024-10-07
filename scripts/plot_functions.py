@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import textwrap
-
+from PB_attractor import PB_attractor
+from DoubleWell_Model import DoubleWell_1D
 
 class plot_DoubleWell:
     def __init__(self, t, mu):
@@ -42,9 +44,8 @@ class plot_trajectories:
 
 
 class plot_probabilities:
-    def __init__(self, file_in: str, filepath_out: str):
+    def __init__(self, file_in: str):
         self.file_in = file_in
-        self.file_out = filepath_out
 
     def read_in_data(self):
         parameters = {}
@@ -65,54 +66,62 @@ class plot_probabilities:
         self.probabilities = self.results[:, 2]
         self.errors = self.results[:, 3]
 
-    def plot(self):
-        fig, ax = plt.subplots(dpi=200)
+    def plot(self, fig, ax):
         wrapped_title = "\n".join(
             textwrap.wrap("TAMS: " + str(self.parameters), width=70)
         )
         fig.subplots_adjust(top=0.85)
         fig.text(0.5, 0.95, wrapped_title, ha="center", va="top", fontsize=10)
-        t = ax.tricontourf(
-            self.t_init, self.x_init, self.probabilities, alpha=0.7, cmap="viridis"
+        t = ax.tricontour(
+            self.t_init, self.x_init, self.probabilities+1e-18, alpha=0.7, cmap="viridis"
         )
         ax.set_xlabel(r"$t_{init}$")
         ax.set_ylabel(r"$x_{init}$")
         ax.grid()
         cbar = fig.colorbar(t)
-        cbar.set_label("Probability")
+        cbar.set_label("Committor estimate")
         self.ax = ax
         self.fig = fig
 
-    def save(self, file_out):
-        self.fig.savefig(file_out)
+
+class plot_PB:
+    def __init__(self, mu: float):
+        self.model = DoubleWell_1D()
+        self.mu = mu
+
+    def get_PB(self):
+        pullback = PB_attractor(self.model, self.mu)
+        pullback.estimate_MC()
+        self.PB_traj = pullback.PB_traj
+    
+    def plot(self, fig, ax):
+        ax.plot(
+            self.PB_traj[:, 0],
+            self.PB_traj[:, 1],
+            label=f"PB_attractor with mu={self.mu}",
+            color="darkred"
+            )
+    
+
 
 
 if __name__ == "__main__":
 
-    from PB_attractor import PB_attractor
-    from DoubleWell_Model import DoubleWell_1D
+    file_in_committor = "../results/outputs/keep/simulationTAMS_0410.txt"
+    file_out = "../results/figures/comparison.png"
 
-    file_in = "../results/outputs/keep/simulationTAMS_0410.txt"
-    filepath_out = "../results/figures/"
-    tams_results = plot_probabilities(file_in, filepath_out)
+    tams_results = plot_probabilities(file_in_committor)
     tams_results.read_in_data()
     mu = tams_results.parameters["mu"]
-    model = DoubleWell_1D()
-    PB_attractor_0 = PB_attractor(
-        model, mu=tams_results.parameters["mu"], noise_factor=0
-    )
-    PB_attractor_0.estimate_MC()
-    PB_attractor_1 = PB_attractor(model, mu=0.01, noise_factor=0.1)
-    PB_attractor_1.estimate_MC()
-    tams_results.plot()
-    tams_results.save(filepath_out + "commitor_estimate.png")
-    tams_results.ax.plot(
-        PB_attractor_0.PB_traj[:, 0],
-        PB_attractor_0.PB_traj[:, 1],
-        label=f"PB_attractor with mu={PB_attractor_0.mu}",
-        color="darkred",
-    )
-    # tams_results.ax.plot(PB_attractor_1.PB_traj[:,0], PB_attractor_1.PB_traj[:,1], label=f'PB_attractor with mu={PB_attractor_1.mu}',color='darkblue')
-    tams_results.ax.legend()
-    tams_results.ax.set_xlim(-50, 160)
-    tams_results.save(filepath_out + "commitor_vs_PB.png")
+    mu = 0.03
+    pullback = plot_PB(mu)
+    pullback.get_PB()
+
+    fig, ax = plt.subplots(dpi=200)
+    tams_results.plot(fig, ax)
+    #pullback.plot(fig, ax)
+    ax.legend()
+    #ax.set_xlim(0, 70)
+    fig.savefig(file_out)
+    plt.show()
+

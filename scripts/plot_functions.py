@@ -156,8 +156,8 @@ class plot_uncertainties():
 
 if __name__ == "__main__":
 
-    file_in_committor = "../results/outputs/simulationTAMS.txt"
-    file_out = "../results/figures/comparison.png"
+    file_in_committor = "../temp/simulationTAMS.txt"
+    file_out = "../temp/comparison.png"
 
     tams_results = plot_probabilities(file_in_committor)
     tams_results.read_in_data()

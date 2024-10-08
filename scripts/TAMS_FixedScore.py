@@ -181,13 +181,13 @@ if __name__ == "__main__":
 
     # Set up the simulation
     nc = 10
-    nb_runs = 10
+    nb_runs = 15
     N_traj = 1000
-    tmax = 10
+    tmax = 2
     dt = 0.01
     mu = 0.03
     noise_factor = 0.1
-    filepath = "../results/outputs/"
+    filepath = "../temp/"
     filename = "simulationTAMS.txt"
     write_mode = "w"
     C_model = DoubleWell_1D()
@@ -212,10 +212,10 @@ if __name__ == "__main__":
         f.write(f"noise_factor: {noise_factor} \n")
 
     ### run tams for a grid of initial conditions
-    initial_times = np.arange(3, 11, 0.2) #tmax10
-    # tmax2: initial_times = np.arange(15, 22, 0.25) #tmax2
-    initial_positions = np.arange(-1.0, -0.6, 0.01) #tmax10
-    # tmax2: initial_positions = np.arange(-0.1, 0.4, 0.005) #tmax2
+    #tmax10: initial_times = np.arange(3, 11, 0.2) #tmax10
+    initial_times = np.arange(17, 19.1, 0.05) #tmax2
+    #tmax10: initial_positions = np.arange(-1.0, -0.6, 0.01) #tmax10
+    initial_positions = np.arange(-0.2, 0.25, 0.005) #tmax2
     T, P = np.meshgrid(initial_times, initial_positions)
     with tqdm(total=T.shape[0] * T.shape[1]) as pbar:
         for i in range(T.shape[0]):

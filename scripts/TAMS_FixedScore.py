@@ -211,7 +211,7 @@ if __name__ == "__main__":
         f.write(f"mu: {mu} \n")
         f.write(f"noise_factor: {noise_factor} \n")
 
-    ### run tams for a grid of initial conditions
+    ### run tams for Committor estimate
     #tmax10: initial_times = np.arange(3, 11, 0.2) #tmax10
     initial_times = np.arange(17, 19.1, 0.05) #tmax2
     #tmax10: initial_positions = np.arange(-1.0, -0.6, 0.01) #tmax10
@@ -235,6 +235,6 @@ if __name__ == "__main__":
                 )
                 with open(filepath + filename, "a") as f:
                     f.write(
-                        f"{initial_condition[0]:.1f};{initial_condition[1]:.1f};{np.mean(probabilities):.10f};{np.std(probabilities):.10f}\n"
+                        f"{initial_condition[0]:.3f};{initial_condition[1]:.3f};{np.mean(probabilities):.10f};{np.std(probabilities):.10f}\n"
                     )
                 pbar.update(1)

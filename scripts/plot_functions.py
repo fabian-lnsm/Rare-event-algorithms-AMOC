@@ -66,15 +66,17 @@ class plot_probabilities:
         self.probabilities = self.results[:, 2]
         self.probabilities[self.probabilities == 0] = 1e-22   # Avoid log(0)
         self.errors = self.results[:, 3]
+        self.resolution = [np.size(np.unique(self.t_init)), np.size(np.unique(self.x_init))]
 
-    def plot(self, fig, ax):
+    def plot(self, fig, ax, levels=None):
         wrapped_title = "\n".join(
             textwrap.wrap("TAMS: " + str(self.parameters), width=70)
         )
         fig.subplots_adjust(top=0.85)
         fig.text(0.5, 0.95, wrapped_title, ha="center", va="top", fontsize=10)
-        #self.levels = np.linspace(0,1,11)
-        self.levels = np.logspace(-6,0,num=19)
+        if levels is None:
+            self.levels = np.logspace(-4,0,num=15)
+        self.levels = levels
         t=ax.tricontourf(
             self.t_init, self.x_init, self.probabilities,
             alpha=0.7, cmap="viridis",
@@ -132,11 +134,10 @@ class plot_uncertainties():
         float_array = np.array(simulation_values)
         self.parameters = parameters
         self.results = float_array
-        self.t_init = self.results[:, 0]
-        self.x_init = self.results[:, 1]
         self.probabilities = self.results[:, 2]
         self.probabilities[self.probabilities == 0] = 1e-22   # Avoid log(0)
         self.errors = self.results[:, 3]
+        
 
     def plot(self, fig, ax):
         wrapped_title = "\n".join(
@@ -166,13 +167,16 @@ if __name__ == "__main__":
     pullback.get_PB()
 
     fig, ax = plt.subplots(dpi=250)
-    tams_results.plot(fig, ax)
+    levels=np.logspace(-6,0,num=25)
+    tams_results.plot(fig, ax, levels)
     pullback.plot(fig, ax)
     ax.legend()
     ax.set_xlim(np.min(tams_results.t_init), np.max(tams_results.t_init))
     ax.set_ylim(np.min(tams_results.x_init), np.max(tams_results.x_init))
     fig.savefig(file_out)
     plt.close()
+    print("Figure written to: ", file_out)
+    print(f'Resolution in [t,x]: {tams_results.resolution}')
 
     '''
     fig, ax = plt.subplots(dpi=250)

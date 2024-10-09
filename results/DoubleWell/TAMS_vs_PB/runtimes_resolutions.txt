@@ -1,0 +1,5 @@
+tmax10_runs_1: 34min, 1600 iterations	
+tmax10_runs_10: 5h, 1600 iterations, resolution: [40,40]
+
+tmax2_runs_1: 6min, 2800 iterations
+tmax2_runs_15: 3h, 3800 iterations, resolution: [43,90]

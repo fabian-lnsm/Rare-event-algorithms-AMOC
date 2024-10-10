@@ -4,6 +4,7 @@ from matplotlib.colors import LogNorm
 import textwrap
 from PB_attractor import PB_attractor
 from DoubleWell_Model import DoubleWell_1D
+    
 
 class plot_DoubleWell:
     def __init__(self, t, mu):

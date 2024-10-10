@@ -114,6 +114,7 @@ class DoubleWell_1D:
         mu: float,
         noise_factor: float,
         init_state: np.ndarray,
+        return_all: False
     ):
         """
         Compute trajectories of the system of fixed length using standard Euler integration.
@@ -154,10 +155,30 @@ class DoubleWell_1D:
             trajectories[:, i, 0] = t
             trajectories[:, i, 1] = x
 
-        # Downsample the trajectory to return model time units
-        i = int(1 / dt)
-        trajectories = trajectories[:, ::i, :]
+        if return_all==False:
+            # Downsample the trajectory to return model time units
+            i = int(1 / dt)
+            trajectories = trajectories[:, ::i, :]
         return trajectories
+    
+    def get_pullback(self, mu: float, return_between_equil: bool = False, N_traj=100, T_max=400, dt=0.01, t_0=-200, noise_factor=0):
+        '''
+        return_between_equil:
+        If true, returns the pullback trajectory only between t=0 and x>=1. Default: False
+        '''
+        t_init = np.full(N_traj, t_0)
+        x_init = np.linspace(-2, 2, N_traj)
+        initial_state = np.stack([t_init, x_init], axis=1)
+        traj = self.trajectory(
+            N_traj, T_max, dt, mu, noise_factor, initial_state, return_all=True
+        )
+        traj = np.mean(traj, axis=0)
+        if return_between_equil==True:
+            mask = (traj[:,0] >= 0) & (traj[:,1] <= 1.0)
+            traj = traj[mask]
+        self.PB_traj = traj
+        return traj
+
 
 
 if __name__ == "__main__":

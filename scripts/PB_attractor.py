@@ -17,3 +17,4 @@ class PB_attractor:
         )
         traj = np.mean(traj, axis=0)
         self.PB_traj = traj
+        return traj

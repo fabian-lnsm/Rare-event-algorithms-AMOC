@@ -22,10 +22,3 @@ class x_coord:
         return score
 
 
-""" times=np.linspace(0,10,10)
-positions=np.linspace(-1.0,1.0,10)
-traj=np.vstack((times,positions)).T
-print(traj.shape,traj)
-scorefunc=x_coord(None,init_state=[0.0,-1.0])
-score=scorefunc.process(traj)
-print(score)  """

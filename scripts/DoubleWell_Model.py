@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class DoubleWell_1D:
@@ -7,11 +8,15 @@ class DoubleWell_1D:
     Note: We simulate trajectories from left to right equilibrium point = from on to off
     """
 
-    def __init__(self, on_state=-1.0, seed=None):
+    def __init__(self, mu : float, noise_factor : float = 0.1, dt : float = 0.01, seed=None):
 
         self.rng = np.random.Generator(np.random.PCG64(seed))
-        self.on = on_state
-        self.off = -on_state
+        self.on = -1.0 #adjust according to position of equilibrium points
+        self.off = 1.0 #adjust according to position of equilibrium points
+        self.mu = mu
+        self.dt = dt
+        self.noise_factor = noise_factor
+
 
     def is_on(self, traj):
         """
@@ -20,11 +25,11 @@ class DoubleWell_1D:
 
         Parameters
         ----------
-        traj : shape (Number of trajectories, timesteps, 2)
+        traj : np.array of shape (Number of trajectories, timesteps, 2)
 
         Returns
         -------
-        An array of shape (Number of trajectories, timesteps)
+        A np.array of shape (Number of trajectories, timesteps)
         Every on-state is replaced with 1, all other states are replaced with 0
 
         """
@@ -38,11 +43,11 @@ class DoubleWell_1D:
 
         Parameters
         ----------
-        traj : shape (Number of trajectories, timesteps, 2)
+        traj : np.array of shape (Number of trajectories, timesteps, 2)
 
         Returns
         -------
-        An array of shape (Number of trajectories, timesteps)
+        A np.array of shape (Number of trajectories, timesteps)
         Every off-state is replaced with 1, all other states are replaced with 0
 
         """
@@ -65,11 +70,11 @@ class DoubleWell_1D:
         transitions = np.sum(sum > 0)
         return transitions
 
-    def potential(self, t, x, mu):
+    def potential(self, t, x):
         """
         The potential of the system at a given state.
         """
-        return x**4 / 4 - x**2 / 2 - mu * x * t
+        return x**4 / 4 - x**2 / 2 - self.mu * x * t
 
     def force(self, t, x, mu):
         """
@@ -106,18 +111,16 @@ class DoubleWell_1D:
         x_new = x + drift + noise_term
         return t_new, x_new
 
-    def trajectory(
+    def trajectory_TAMS(
         self,
         N_traj: int,
         T_max: int,
-        dt: float,
-        mu: float,
-        noise_factor: float,
         init_state: np.ndarray,
-        return_all: False
+        return_all = False,
+        noise_factor = None,
     ):
         """
-        Compute trajectories of the system of fixed length using standard Euler integration.
+        Compute trajectories of the system of fixed length (TAMS) using Euler-Maruyama method.
 
         Parameters
         ----------
@@ -125,53 +128,115 @@ class DoubleWell_1D:
             The number of trajectories to compute.
         T_max : int
             The duration these traj should last.
-        dt : float
-            The time step of the integration
-        mu : float
-            The coupling parameter of the system
-        noise_factor : float
-            The amount of noise to add to the system
         init_state : state, thus of shape (N_traj, 2)
             The initial conditions for every trajectory.
+        return_all : bool
+            Whether or not to return every timestep or only full steps. Default: False
+        noise_factor : float
+            If not provided, the noise factor of the model is used.
 
         Returns
         -------
         simulated_trajectories : traj of shape (N_traj, T_max, 2)
             The computed trajectories downsampled to model time units.
-
+            
         """
-
-        n_steps = int(T_max / dt)
+        if noise_factor is None:
+            noise_factor = self.noise_factor
+        n_steps = int(T_max / self.dt)
         trajectories = np.zeros((N_traj, n_steps, 2))
         t = init_state[:, 0]
         x = init_state[:, 1]
         trajectories[:, 0, 0] = t
         trajectories[:, 0, 1] = x
         noise = noise_factor * self.rng.normal(
-            loc=0.0, scale=np.sqrt(dt), size=(N_traj, n_steps)
+            loc=0.0, scale=np.sqrt(self.dt), size=(N_traj, n_steps)
         )
         for i in range(1, n_steps):
-            t, x = self.euler_maruyama(t, x, dt, mu, noise[:, i])
+            t, x = self.euler_maruyama(t, x, self.dt, self.mu, noise[:, i])
             trajectories[:, i, 0] = t
             trajectories[:, i, 1] = x
 
         if return_all==False:
             # Downsample the trajectory to return model time units
-            i = int(1 / dt)
+            i = int(1 / self.dt)
             trajectories = trajectories[:, ::i, :]
         return trajectories
     
-    def get_pullback(self, mu: float, return_between_equil: bool = False, N_traj=100, T_max=400, dt=0.01, t_0=-200, noise_factor=0):
+    def trajectory_AMS(
+            self,
+            N_traj: int,
+            init_state: np.array,
+    ):
+        """
+        Compute trajectories of the system of variable length (AMS) using Euler-Maruyama method.
+
+        Parameters
+        ----------
+        N_traj : int
+            The number of trajectories to compute.
+        init_state : state, thus of shape (N_traj, 2)
+            The initial conditions for every trajectory.
+
+        Returns
+        -------
+        simulated_trajectories : traj of shape (N_traj, time: not fixed, 2)
+            The computed trajectories downsampled to model time units.
+
+        """
+
+        traj = []
+        traj.append(init_state)
+        active_traj = np.arange(N_traj) # Index of the trajectories that are still running
+        i = 0
+        transitions = 0
+        while len(active_traj) > 0:
+            noise_term = self.noise_factor * self.rng.normal(loc=0.0, scale=np.sqrt(self.dt), size=len(active_traj))
+            t_current, x_current = traj[i][active_traj, 0], traj[i][active_traj, 1]
+
+            t_new, x_new = np.full(N_traj, np.nan), np.full(N_traj, np.nan)
+            t_new[active_traj], x_new[active_traj] = self.euler_maruyama(t_current, x_current, self.dt, self.mu, noise_term)
+            traj.append(np.stack([t_new, x_new], axis=1))
+
+            back_to_on = ~self.is_on(traj[i][active_traj]) & self.is_on(traj[i+1][active_traj])
+            reached_off = self.is_off(traj[i+1][active_traj])
+            if np.any(reached_off):
+                transitions += np.sum(reached_off)
+            active_traj = active_traj[np.flatnonzero(~(back_to_on | reached_off))]  
+            i += 1
+        
+        traj = np.array(traj)
+        traj = np.transpose(traj, (1, 0, 2))
+        print('Number of trajectories:', traj.shape[0])
+        print('Number of simulated timsteps:', traj.shape[1])
+        print('Transitioned trajectories:', transitions)
+        return traj
+
+
+
+        
+    
+    def get_pullback(self, return_between_equil: bool = False, N_traj=100, T_max=400, t_0=-200):
         '''
-        return_between_equil:
-        If true, returns the pullback trajectory only between t=0 and x>=1. Default: False
+        Parameters
+        ----------
+        return_between_equil: boolean
+            If true, returns the pullback trajectory only between t=0 and x>=1.
+            Idea: This is the range where we want a score function
+            Default: False
+
+        Returns
+        -------
+        traj: np.array of shape (int(Tmax/dt), 2)
+            The estimated pullback trajectory
         '''
+
         t_init = np.full(N_traj, t_0)
         x_init = np.linspace(-2, 2, N_traj)
         initial_state = np.stack([t_init, x_init], axis=1)
-        traj = self.trajectory(
-            N_traj, T_max, dt, mu, noise_factor, initial_state, return_all=True
-        )
+        traj = self.trajectory_TAMS(
+            N_traj, T_max, initial_state, return_all=True, noise_factor=0
+        ) # noise_factor=0 to get deterministic trajectory & return all timesteps
         traj = np.mean(traj, axis=0)
         if return_between_equil==True:
             mask = (traj[:,0] >= 0) & (traj[:,1] <= 1.0)
@@ -183,54 +248,15 @@ class DoubleWell_1D:
 
 if __name__ == "__main__":
 
-    import time
+    mu = 0.03
+    noise_factor = 0.1
+    model = DoubleWell_1D(mu, noise_factor)
 
-    # set up the simulation
-    model = DoubleWell_1D()
-    N_traj = 10000  # number of trajectories per run
-    tmax = 100  # maximum length of trajectories in model time units
-    dt = 0.01  # time step of the simulation in model time units
-    mu = 0.005  # coupling parameter in the model
-    noise_factor = 0.1  # noise parameter in the model
-    file_string = "../results/outputs/simulationMC.txt"
-    params = {
-        "N_traj": N_traj,
-        "T_max": tmax,
-        "dt": dt,
-        "mu": mu,
-        "noise_factor": noise_factor,
-    }
-    with open(file_string, "a") as f:
-        f.write(" \n Simulation parameters: \n")
-        f.write(str(params) + "\n" + "\n")
-        f.write("Results: \n \n")
-        f.write("IC Probability \n")
-
-    # set initial conditions
-    initial_condition = [0.0, -1.0]  # initial condition for [time,x]
-    initial_condition = np.tile(
-        initial_condition, (N_traj, 1)
-    )  # turn into array of shape (N_traj,2)
-
-    # run the simulation
-    time_start = time.time()
-    traj = model.trajectory(N_traj, tmax, dt, mu, noise_factor, initial_condition)
-    probabilities = model.number_of_transitioned_traj(traj) / N_traj
-    with open(file_string, "a") as f:
-        f.write(f"{initial_condition[0,:]} {probabilities:.5f} \n")
-    time_end = time.time()
-    print("Time elapsed: ", time_end - time_start)
-    print("Probability of transition: ", probabilities)
-
-    # plot the resulting trajectories
-    from plot_functions import plot_trajectories
-
-    params = {
-        "N_traj": N_traj,
-        "T_max": tmax,
-        "dt": dt,
-        "mu": mu,
-        "noise_factor": noise_factor,
-    }
-    filename = "../results/figures/trajectoriesMC.png"
-    plot_trajectories(traj, params, filename).plot()
+    N_traj = 1000
+    init_state = np.array([0.0,-1.0])
+    init_state = np.tile(init_state, (N_traj,1))
+    traj = model.trajectory_AMS(N_traj,init_state)
+    fig, ax = plt.subplots()
+    for i in range(N_traj):
+        ax.plot(traj[i,:,0],traj[i,:,1])
+    plt.show()

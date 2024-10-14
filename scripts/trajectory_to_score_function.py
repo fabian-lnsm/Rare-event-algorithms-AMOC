@@ -66,10 +66,10 @@ def plot_PB_score_function(fig,ax, PB_trajectory, mu, score, levels):
 if __name__=='__main__':
 
     filepath = '../temp/trajectory_to_score_function.png'
-    model = DoubleWell_1D()
     mu = 0.03
     decay_scorefct = 0.2
-    PB_trajectory = model.get_pullback(mu, return_between_equil=True)
+    model = DoubleWell_1D(mu)
+    PB_trajectory = model.get_pullback(return_between_equil=True)
     score=score_function_maker(PB_trajectory,decay_scorefct)
 
     fig, ax = plt.subplots(dpi=200)

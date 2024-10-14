@@ -44,7 +44,7 @@ class plot_trajectories:
         fig.savefig(self.filename)
 
 
-class plot_probabilities:
+class plot_committor:
     def __init__(self, file_in: str):
         self.file_in = file_in
 
@@ -69,12 +69,13 @@ class plot_probabilities:
         self.errors = self.results[:, 3]
         self.resolution = [np.size(np.unique(self.t_init)), np.size(np.unique(self.x_init))]
 
-    def plot(self, fig, ax, levels=None):
-        wrapped_title = "\n".join(
-            textwrap.wrap("TAMS: " + str(self.parameters), width=70)
-        )
-        fig.subplots_adjust(top=0.85)
-        fig.text(0.5, 0.95, wrapped_title, ha="center", va="top", fontsize=10)
+    def plot(self, fig, ax, add_title=True, levels=None):
+        if add_title==True:
+            wrapped_title = "\n".join(
+                textwrap.wrap("TAMS: " + str(self.parameters), width=70)
+            )
+            fig.subplots_adjust(top=0.85)
+            fig.text(0.5, 0.95, wrapped_title, ha="center", va="top", fontsize=10)
         if levels is None:
             self.levels = np.logspace(-4,0,num=15)
         self.levels = levels
@@ -94,7 +95,7 @@ class plot_probabilities:
         ax.set_ylabel(r"$x_{init}$")
         ax.grid()
         cbar = fig.colorbar(t)
-        cbar.set_label("Committor estimate")
+        #cbar.set_label("Committor estimate")
 
 
 
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     file_in_committor = "../temp/simulationTAMS.txt"
     file_out = "../temp/comparison.png"
 
-    tams_results = plot_probabilities(file_in_committor)
+    tams_results = plot_committor(file_in_committor)
     tams_results.read_in_data()
     mu = tams_results.parameters["mu"]
     pullback = plot_PB(mu)

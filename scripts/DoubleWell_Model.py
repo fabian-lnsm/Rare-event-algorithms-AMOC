@@ -167,6 +167,7 @@ class DoubleWell_1D:
             self,
             N_traj: int,
             init_state: np.array,
+            downsample: bool = True,
     ):
         """
         Compute trajectories of the system of variable length (AMS) using Euler-Maruyama method.
@@ -177,6 +178,10 @@ class DoubleWell_1D:
             The number of trajectories to compute.
         init_state : state, thus of shape (N_traj, 2)
             The initial conditions for every trajectory.
+        downsample: bool
+            Whether to return every timestep or only full steps.
+            true: return only full steps, false: return every timestep
+            Default: True
 
         Returns
         -------
@@ -207,9 +212,15 @@ class DoubleWell_1D:
         
         traj = np.array(traj)
         traj = np.transpose(traj, (1, 0, 2))
-        print('Number of trajectories:', traj.shape[0])
-        print('Number of simulated timsteps:', traj.shape[1])
-        print('Transitioned trajectories:', transitions)
+        #print('Number of trajectories:', traj.shape[0])
+        #print('Number of simulated timsteps:', traj.shape[1])
+        #print('Transitioned trajectories:', transitions)
+
+        if downsample==True:
+            # Downsample the trajectory to return model time units
+            i = int(1 / self.dt)
+            traj = traj[:, ::i, :]
+
         return traj
 
 

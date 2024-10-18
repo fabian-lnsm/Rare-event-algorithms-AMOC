@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from multiprocessing import Pool
+from tqdm import tqdm
+
 
 
 
@@ -181,8 +183,9 @@ class AMS():
         ----------
         nb_runs : int
             Number of runs
-        init_state : np.array of shape (N_traj, dimension)
-            Initial state of the trajectories
+        init_state : np.array of shape (N_traj, dimension) or (dimension,)
+            Initial state of all trajectories. \n
+            If the dimension is 1, the initial state is copied to be the same for each of the N_traj trajectories.
 
         Returns
         -------
@@ -193,7 +196,11 @@ class AMS():
             - Number of transitions
 
         '''
-        print(f'Running {nb_runs} simulations...', flush=True)
+        #print(f'Running {nb_runs} simulations...', flush=True)
+
+        if init_state.ndim == 1:
+            init_state = np.tile(init_state, (self.N_traj,1))
+
         t_start = time.perf_counter()
         with Pool() as pool:
             # Map the run method across nb_runs
@@ -207,8 +214,8 @@ class AMS():
 
         t_end = time.perf_counter()
         runtime = t_end - t_start
-        print('runtime:', runtime)
-        return stats
+        #print('runtime:', runtime, flush=True)
+        return np.mean(stats[:,0]), np.std(stats[:,0])
 
         
 if __name__ == "__main__":
@@ -218,7 +225,7 @@ if __name__ == "__main__":
 
 
     mu = 0.03
-    dt=0.01
+    dt = 0.01
     model = DoubleWell_1D(mu, dt=dt)
     score_fct = score_x()
 
@@ -229,9 +236,27 @@ if __name__ == "__main__":
     AMS_algorithm.set_model(model)
     AMS_algorithm.set_traj_func(model.trajectory_AMS, downsample=False)
 
-    init_state = np.tile(np.array([0.0,-1.0]), (N_traj,1))
-    nb_runs = 10
-    res = AMS_algorithm.run_multiple(nb_runs,init_state)
+    nb_runs = 1
+    
+    initial_times = np.arange(0,21,0.5, dtype=float)
+    initial_positions = np.arange(-1,1.1,0.05, dtype=float)
+    filepath = '../temp/'
+    filename = f'simulationAMS_runs{nb_runs}_grid{initial_times.shape * initial_positions.shape}.txt'
+    print(initial_times, initial_positions)
+    T, P = np.meshgrid(initial_times, initial_positions)
+    with tqdm(total=T.shape[0] * T.shape[1]) as pbar:
+        for i in range(T.shape[0]):
+            for j in range(T.shape[1]):
+                init_state = np.array([T[i,j],P[i,j]])
+                a, b = AMS_algorithm.run_multiple(nb_runs,init_state)
+                with open(filepath + filename, "a") as f:
+                    f.write(
+                        f"{T[i,j]};{P[i,j]};{a};{b} \n"
+                    )
+                pbar.update(1)
+
+
+
    
 
 

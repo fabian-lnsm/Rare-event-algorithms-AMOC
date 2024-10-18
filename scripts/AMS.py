@@ -1,6 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 
 
@@ -56,6 +57,7 @@ class AMS():
         init_state : np.array of shape (N_traj, dimension)
             Initial state of the trajectories
         zmax : float. Default is 1
+            Threshold for collapse = maximum score
 
         Returns
         -------
@@ -73,9 +75,16 @@ class AMS():
             
             - **trajectories** (_np.array of shape (N_traj, time, dimension)_):  
             Trajectories. Time is not fixed.
+
+            - **scores** (_np.array of shape (N_traj, time)_):
+            Scores of the trajectories.
+
+            - **runtime** (_float_):
+            Execution time.
             
         '''
         k, w = 0, 1
+        t_start = time.perf_counter()
 
         # For convenience, trajectories are stored in an array of shape (N, T, dimension)
         # But trajectories stop when they reach either region B or come back to region A
@@ -86,7 +95,7 @@ class AMS():
 
         # Find the actual length of each trajectory (i.e. the first NaN)
         Nt = np.argmax(np.isnan(traj).any(axis=2), axis=1)
-        Nt[Nt==0] = traj.shape[1] # If there is no NaN, it is the longest trajectory
+        Nt = np.where(Nt == 0, traj.shape[1], Nt) # If there is no NaN, it is the longest trajectory
         max_Nt = np.max(Nt) 
 
         score = self.comp_score(traj)
@@ -113,6 +122,7 @@ class AMS():
             new_traj = self.comp_traj(len(idx), init_clone)
             new_score = self.comp_score(new_traj)
 
+
             # Find the actual length of each new trajectory (i.e. the first NaN)
             new_nt = np.argmax(np.isnan(new_traj).any(axis=2), axis=1)
             new_nt[np.all(~np.isnan(new_traj), axis=(1, 2))] = new_traj.shape[1]
@@ -131,7 +141,6 @@ class AMS():
                 score = np.concatenate((score, np.full((self.N_traj,new_max-max_Nt),np.nan)), axis=1)
                 max_Nt = new_max
 
-
             # update the trajectories and scores
             for i in range(len(idx)):
                 t, r, l = idx[i], restart[i], new_nt[i]
@@ -147,42 +156,51 @@ class AMS():
 
                 score[t, onzone], score[t, offzone] = 0, 1
 
-
-
             #Prepare next iteration
             k += 1
             Q = np.nanmax(score,axis=1)
 
-
-            if k % 10 == 0:
-                fig, ax = plt.subplots()
-                fig.suptitle(f'Transitions: {np.count_nonzero(Q>=zmax)}')
-                for i in range(self.N_traj):
-                    ax.plot(traj[i,:,0], traj[i,:,1])
-                ax.grid(True)
-                fig.savefig('../temp/traj_'+str(k)+'.png')
-                plt.close(fig)
-                #print(f'Iteration {k} - Transitions: {np.count_nonzero(Q>=zmax)} - Scores: {Q}')
-
-            
-
         count_collapse = np.count_nonzero(Q>=zmax)
+        t_end = time.perf_counter()
 
-        fig, ax = plt.subplots()
-        fig.suptitle(f'Transitions: {np.count_nonzero(Q>=zmax)}')
-        for i in range(self.N_traj):
-            ax.plot(traj[i,:,0], traj[i,:,1])
-        ax.grid(True)
-        fig.savefig('../temp/traj_'+str(k)+'.png')
-        plt.close(fig)
-        print(f'Iteration {k} - Transitions: {np.count_nonzero(Q>=zmax)} - Scores: {Q}')
+        return dict({
+            'probability':w*count_collapse/self.N_traj,
+            'iterations':k,
+            'nb_transitions':count_collapse,
+            'trajectories':traj,
+            'scores':score,
+            'runtime': t_end - t_start
+            })
+    
+    def run_multiple(self, nb_runs:int, init_state : np.array):
+        '''
+        Parameters
+        ----------
+        nb_runs : int
+            Number of runs
+        init_state : np.array of shape (N_traj, dimension)
+            Initial state of the trajectories
 
-        return dict({'probability':w*count_collapse/self.N_traj,
-                     'iterations':k,
-                     'nb_transitions':count_collapse,
-                     'trajectories':traj,
-                     'scores':score})
+        Returns
+        -------
+        np.array of shape (nb_runs, 4)
+            Array containing the results of the runs. Each row contains the following information:
+            - Probability
+            - Number of iterations
+            - Number of transitions
+            - Runtime
 
+        '''
+        stats = np.zeros((nb_runs, 4))
+        for i in range(nb_runs):
+            result = self.run(init_state)
+            stats[i,0] = result['probability']
+            stats[i,1] = result['iterations']
+            stats[i,2] = result['nb_transitions']
+            stats[i,3] = result['runtime']
+        return stats
+
+        
 if __name__ == "__main__":
 
     from DoubleWell_Model import DoubleWell_1D
@@ -192,7 +210,7 @@ if __name__ == "__main__":
     mu = 0.03
     dt=0.01
     model = DoubleWell_1D(mu, dt=dt)
-    score_fct = score_PB(model, decay_length = 0.2)
+    score_fct = score_x()
 
     N_traj = 10
     nc = 1
@@ -202,9 +220,10 @@ if __name__ == "__main__":
     AMS_algorithm.set_traj_func(model.trajectory_AMS, downsample=False)
 
     init_state = np.tile(np.array([0.0,-1.0]), (N_traj,1))
-    res = AMS_algorithm.run(init_state)
+    nb_runs = 10
+    res = AMS_algorithm.run_multiple(nb_runs,init_state)
+    print(res)
    
-    
 
 
 

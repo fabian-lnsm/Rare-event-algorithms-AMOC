@@ -224,9 +224,6 @@ class DoubleWell_1D:
         return traj
 
 
-
-        
-    
     def get_pullback(self, return_between_equil: bool = False, N_traj=100, T_max=400, t_0=-200):
         '''
         Parameters

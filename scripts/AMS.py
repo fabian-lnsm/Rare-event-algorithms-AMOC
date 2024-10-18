@@ -2,30 +2,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from DoubleWell_Model import DoubleWell_1D
-
-
-class score_x:
-    """
-    Assumes that the equilibrium states are at x=1 and x=-1
-    """
-
-    def __init__(self):
-        self.equilibrium = 1  # abs(x-coordinate) of the equilibrium states
-
-    def get_score(self, traj : np.array):
-        """
-        Parameters
-        ----------
-        traj: np.array of shape (...,2)
-
-        Returns
-        -------
-        score: np.array of shape (...)
-        """
-        x_value = traj[..., 1]
-        score = (x_value + self.equilibrium) / (2 * self.equilibrium)
-        return score
 
 
 
@@ -209,14 +185,19 @@ class AMS():
 
 if __name__ == "__main__":
 
+    from DoubleWell_Model import DoubleWell_1D
+    from Score_Function import score_x, score_PB
+
+
     mu = 0.03
     dt=0.01
     model = DoubleWell_1D(mu, dt=dt)
+    score_fct = score_PB(model, decay_length = 0.2)
 
     N_traj = 10
     nc = 1
     AMS_algorithm = AMS(N_traj, nc)
-    AMS_algorithm.set_score(score_x().get_score)
+    AMS_algorithm.set_score(score_fct.get_score)
     AMS_algorithm.set_model(model)
     AMS_algorithm.set_traj_func(model.trajectory_AMS, downsample=False)
 

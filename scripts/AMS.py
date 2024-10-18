@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from multiprocessing import Pool
 
 
 
@@ -16,39 +17,40 @@ class AMS():
     def reset_seed(self, seed):
         self.rng.bit_generator.state = np.random.PCG64(seed).state
 
+
     def set_score(self, score_function, *fixed_args, **fixed_kwargs):
-        self.comp_score = lambda traj : score_function(traj, *fixed_args, **fixed_kwargs)
+            self.score_function = score_function
+            self.fixed_args = fixed_args
+            self.fixed_kwargs = fixed_kwargs
+
+    def comp_score(self, traj):
+        return self.score_function(traj, *self.fixed_args, **self.fixed_kwargs)
+
 
     def set_model(self, model):
         self.model = model
 
     def set_traj_func(self, traj_function, *fixed_args, **fixed_kwargs):
-        '''
-        Method
-        ------
-        Set the trajectory function. \n
-        Signature should be:
-            traj_function(N_traj, init_state, *fixed_args, **fixed_kwargs)
-        where:
-            - **N_traj** (_int_)
-                Number of trajectories to generate
-            - **init_state** (_np.array of shape (N_traj, dimension)_)
-                Initial state of the trajectories
+        self.traj_function = traj_function  # Store the function
+        self.traj_fixed_args = fixed_args  # Store fixed args
+        self.traj_fixed_kwargs = fixed_kwargs  # Store fixed kwargs
 
+    def comp_traj(self, N_traj : int, init_state : np.array):
+        '''
         Parameters
         ----------
-        traj_function : function
-            Function that generates the trajectories
-        fixed_args : list
-            Fixed arguments of the function
-        fixed_kwargs : dict
-            Fixed keyword arguments of the function
-        
+        N_traj : int
+            Number of trajectories to generate
+        init_state: np.array of shape (N_traj, dimension)
+                Initial state of the trajectories
+
         Returns
         -------
-        None
+        np.array of shape (N_traj, time, dimension)
+            The simulated Trajectories
         '''
-        self.comp_traj = lambda N_traj, init_state : traj_function(N_traj, init_state, *fixed_args, **fixed_kwargs)
+
+        return self.traj_function(N_traj, init_state, *self.traj_fixed_args, **self.traj_fixed_kwargs)
 
     def run(self, init_state, zmax=1):
         '''
@@ -84,7 +86,6 @@ class AMS():
             
         '''
         k, w = 0, 1
-        t_start = time.perf_counter()
 
         # For convenience, trajectories are stored in an array of shape (N, T, dimension)
         # But trajectories stop when they reach either region B or come back to region A
@@ -161,7 +162,6 @@ class AMS():
             Q = np.nanmax(score,axis=1)
 
         count_collapse = np.count_nonzero(Q>=zmax)
-        t_end = time.perf_counter()
 
         return dict({
             'probability':w*count_collapse/self.N_traj,
@@ -169,8 +169,11 @@ class AMS():
             'nb_transitions':count_collapse,
             'trajectories':traj,
             'scores':score,
-            'runtime': t_end - t_start
             })
+    
+    def _run_single(self, init_state):
+        # This function is intended to be called by each worker process.
+        return self.run(init_state)
     
     def run_multiple(self, nb_runs:int, init_state : np.array):
         '''
@@ -183,21 +186,28 @@ class AMS():
 
         Returns
         -------
-        np.array of shape (nb_runs, 4)
+        np.array of shape (nb_runs, 3)
             Array containing the results of the runs. Each row contains the following information:
             - Probability
             - Number of iterations
             - Number of transitions
-            - Runtime
 
         '''
-        stats = np.zeros((nb_runs, 4))
-        for i in range(nb_runs):
-            result = self.run(init_state)
+        print(f'Running {nb_runs} simulations...', flush=True)
+        t_start = time.perf_counter()
+        with Pool() as pool:
+            # Map the run method across nb_runs
+            results = pool.map(self._run_single, [init_state] * nb_runs)
+
+        stats = np.zeros((nb_runs, 3))
+        for i, result in enumerate(results):
             stats[i,0] = result['probability']
             stats[i,1] = result['iterations']
             stats[i,2] = result['nb_transitions']
-            stats[i,3] = result['runtime']
+
+        t_end = time.perf_counter()
+        runtime = t_end - t_start
+        print('runtime:', runtime)
         return stats
 
         
@@ -212,8 +222,8 @@ if __name__ == "__main__":
     model = DoubleWell_1D(mu, dt=dt)
     score_fct = score_x()
 
-    N_traj = 10
-    nc = 1
+    N_traj = 1000
+    nc = 10
     AMS_algorithm = AMS(N_traj, nc)
     AMS_algorithm.set_score(score_fct.get_score)
     AMS_algorithm.set_model(model)
@@ -222,7 +232,6 @@ if __name__ == "__main__":
     init_state = np.tile(np.array([0.0,-1.0]), (N_traj,1))
     nb_runs = 10
     res = AMS_algorithm.run_multiple(nb_runs,init_state)
-    print(res)
    
 
 

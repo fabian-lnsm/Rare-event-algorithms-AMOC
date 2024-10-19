@@ -236,12 +236,12 @@ if __name__ == "__main__":
     AMS_algorithm.set_model(model)
     AMS_algorithm.set_traj_func(model.trajectory_AMS, downsample=False)
 
-    nb_runs = 1
+    nb_runs = 5
     
-    initial_times = np.arange(0,21,0.5, dtype=float)
-    initial_positions = np.arange(-1,1.1,0.05, dtype=float)
+    initial_times = np.arange(0,6,0.2, dtype=float)
+    initial_positions = np.arange(-1,0,0.025, dtype=float)
     filepath = '../temp/'
-    filename = f'simulationAMS_runs{nb_runs}_grid{initial_times.shape * initial_positions.shape}.txt'
+    filename = f'simulationAMS_runs{nb_runs}_grid{initial_times.shape[0] * initial_positions.shape[0]}.txt'
     print(initial_times, initial_positions)
     T, P = np.meshgrid(initial_times, initial_positions)
     with tqdm(total=T.shape[0] * T.shape[1]) as pbar:

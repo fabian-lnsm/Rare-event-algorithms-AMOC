@@ -6,7 +6,7 @@ from scipy.interpolate import RegularGridInterpolator, RectBivariateSpline
 
 
 
-def walk_gradient_continuous(Z, dZdx, dZdy, start_x, start_y, x_values, y_values, ascent=True, step_size=0.001, max_steps=2000, tolerance=1e-2):
+def walk_gradient_continuous(Z_interp, dZdx_interp, dZdy_interp, start_x, start_y, x_values, y_values, ascent=True, step_size=0.01, max_steps=10000, tolerance=1e-8):
     path_x = [start_x]
     path_y = [start_y]
     
@@ -14,25 +14,20 @@ def walk_gradient_continuous(Z, dZdx, dZdy, start_x, start_y, x_values, y_values
     current_y = start_y
     
     for step in range(max_steps):
-        # Find the current position in the grid's coordinate system
-        x_idx = (current_x - x_values[0]) / (x_values[-1] - x_values[0]) * (len(x_values) - 1)
-        y_idx = (current_y - y_values[0]) / (y_values[-1] - y_values[0]) * (len(y_values) - 1)
-        
-        # Interpolate the gradient at the current position
-        grad_x = map_coordinates(dZdx, [[y_idx], [x_idx]], order=1)[0]
-        grad_y = map_coordinates(dZdy, [[y_idx], [x_idx]], order=1)[0]
-        
-        
+        # Interpolate the gradient at the current position using the interpolators
+        grad_x = dZdx_interp(current_x, current_y) 
+        grad_y = dZdy_interp(current_x, current_y)
+
         # Compute the magnitude of the gradient
         grad_magnitude = np.sqrt(grad_x**2 + grad_y**2)
         
         # Stop if the gradient magnitude is smaller than the tolerance
-        '''
-        if grad_magnitude < tolerance:
-            print(f"Stopped at step {step}: gradient magnitude is too small ({grad_magnitude:.2e}).")
-            break
-        '''
         
+        if grad_magnitude < tolerance:
+            print(f"Stopped at step {step}: gradient magnitude is too small ({grad_magnitude.item()}).")
+            break
+        
+
         # Determine the step direction (ascent or descent)
         if ascent:
             step_x = grad_x / grad_magnitude  # Move in the gradient direction (normalized)
@@ -51,56 +46,29 @@ def walk_gradient_continuous(Z, dZdx, dZdy, start_x, start_y, x_values, y_values
             break
         
         # Store the new position in the path
-        path_x.append(current_x)
-        path_y.append(current_y)
+        path_x.append(current_x.item())
+        path_y.append(current_y.item())
 
-        if step==max_steps-1:
+        if step == max_steps - 1:
             print(f"Stopped at step {step}: max steps reached.")
-    
-    return path_x, path_y
+
+    path = np.array([path_x, path_y]).T
+    return path
 
 def get_gradient_path(x_values: np.array, y_values: np.array, Z: np.array, start_x: float, start_y: float, ascent=True):
     '''
-    Description
-    -----------
-    Compute the steepest gradient path on a given grid.
-
-
-    Parameters
-    ----------
-    x_values : np.array of shape (N,)
-        The x-coordinates of the grid.
-    y_values : np.array of shape (M,)
-        The y-coordinates of the grid.
-    Z : np.array of shape (M * N)
-        The grid values for which we calculate the gradient.
-    start_x : float
-        The starting x-coordinate for the path (can be continuous, not on the grid).
-    start_y : float
-        The starting y-coordinate for the path (can be continuous, not on the grid).
-    ascent : bool
-        If True, the path will follow the gradient ascent. Choose False for descent.
-    step_size : float
-        Step size for the gradient walk.
-    max_steps : int
-        Maximum number of steps to take.
-    tolerance : float
-        Stop when the gradient magnitude falls below this value.
-
-    Returns
-    -----------
-    path_x : np.array of shape (L,)
-        The x-coordinates of the path.
-    path_y : np.array of shape (L,)
-        The y-coordinates of the path.
+    Compute the steepest gradient path on a given grid with interpolation.
     '''
-    # Compute the gradients of Z with respect to x and y
-    dZdx, dZdy = np.gradient(Z, x_values, y_values)  
+    # Interpolators for Z and its gradients
+    Z_interp = RectBivariateSpline(x_values, y_values, Z)
+    dZdx_interp = RectBivariateSpline(x_values, y_values, np.gradient(Z, axis=0))  # Gradient along x
+    dZdy_interp = RectBivariateSpline(x_values, y_values, np.gradient(Z, axis=1))  # Gradient along y
 
     # Walk the gradient and return the path
-    path_x, path_y = walk_gradient_continuous(Z, dZdx, dZdy, start_x, start_y, x_values, y_values, ascent)
+    path = walk_gradient_continuous(Z_interp, dZdx_interp, dZdy_interp, start_x, start_y, x_values, y_values, ascent)
 
-    return path_x, path_y
+    return path
+
 
 
 #---------------------------------------------------------------
@@ -111,10 +79,11 @@ def plot_gradient_path(fig, ax, file_in, t_start, x_start):
     position_grid = np.sort(np.unique(data[:, 1]))
     prob = data[:, 2]
     prob[prob == 0] = 1e-22   
+    #prob = np.log(prob)
     prob_grid = prob.reshape((len(time_grid), len(position_grid)))
-    path_x_plot, path_y_plot = get_gradient_path(time_grid, position_grid, prob_grid, t_start, x_start, ascent=True)
+    path = get_gradient_path(time_grid, position_grid, prob_grid, t_start, x_start, ascent=True)
     ax.scatter(t_start, x_start, color='red', label='Starting point', marker='x')
-    ax.plot(path_x_plot, path_y_plot, color='red', label='Gradient path (ascent)')
+    ax.plot(path[:,0], path[:,1], color='red', label='Gradient path (ascent)')
     return fig, ax
 
 
@@ -178,7 +147,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(dpi=250)
     fig, ax = plot_PB(fig, ax, model)
     fig, ax = plot_committor_estimate(fig, ax, file_committor, nb_runs=5, levels=levels, lognorm=False)
-    fig, ax = plot_gradient_path(fig, ax, file_committor, t_start=2.3, x_start=-0.95)
+    fig, ax = plot_gradient_path(fig, ax, file_committor, t_start=3.4, x_start=-0.35)
     fig, ax = plot_committor_gradient(fig, ax, file_committor)
     ax.legend()
     file_out = "../temp/reconstruct.png"
@@ -188,6 +157,7 @@ if __name__ == "__main__":
     fig2, ax2 = plt.subplots(dpi=250)
     fig2, ax2 = plot_committor_gradient(fig2, ax2, file_committor)
     fig2, ax2 = plot_committor_estimate(fig2, ax2, file_committor, nb_runs=5, levels=levels, lognorm=False)
+    fig2, ax2 = plot_PB(fig2, ax2, model)
     fig2.savefig("../temp/gradient.png")
     print('Saving to...', "../temp/gradient.png")
 

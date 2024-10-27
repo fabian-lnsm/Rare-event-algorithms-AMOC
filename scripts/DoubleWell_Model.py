@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 class DoubleWell_1D:
@@ -195,6 +196,7 @@ class DoubleWell_1D:
         active_traj = np.arange(N_traj) # Index of the trajectories that are still running
         i = 0
         transitions = 0
+        transit_back = 0
         while len(active_traj) > 0:
             noise_term = self.noise_factor * self.rng.normal(loc=0.0, scale=np.sqrt(self.dt), size=len(active_traj))
             t_current, x_current = traj[i][active_traj, 0], traj[i][active_traj, 1]
@@ -207,21 +209,26 @@ class DoubleWell_1D:
             reached_off = self.is_off(traj[i+1][active_traj])
             if np.any(reached_off):
                 transitions += np.sum(reached_off)
+            if np.any(back_to_on):
+                transit_back += np.sum(back_to_on)
             active_traj = active_traj[np.flatnonzero(~(back_to_on | reached_off))]  
             i += 1
         
         traj = np.array(traj)
         traj = np.transpose(traj, (1, 0, 2))
+        prob = transitions/N_traj
         #print('Number of trajectories:', traj.shape[0])
         #print('Number of simulated timsteps:', traj.shape[1])
         #print('Transitioned trajectories:', transitions)
+        #print('Transited back trajectories:', transit_back)
+        print(f'Probability: {prob:.3f}')
 
         if downsample==True:
             # Downsample the trajectory to return model time units
             i = int(1 / self.dt)
             traj = traj[:, ::i, :]
 
-        return traj
+        return traj, prob
 
 
     def get_pullback(self, return_between_equil: bool = False, N_traj=100, T_max=400, t_0=-200):
@@ -257,14 +264,23 @@ class DoubleWell_1D:
 if __name__ == "__main__":
 
     mu = 0.03
-    noise_factor = 0.1
+    noise_factor = 0.01
     model = DoubleWell_1D(mu, noise_factor)
+    N_traj = 10000
 
-    N_traj = 1000
-    init_state = np.array([0.0,-1.0])
-    init_state = np.tile(init_state, (N_traj,1))
-    traj = model.trajectory_AMS(N_traj,init_state)
-    fig, ax = plt.subplots()
-    for i in range(N_traj):
-        ax.plot(traj[i,:,0],traj[i,:,1])
-    plt.show()
+    initial_times = np.arange(0, 6, 0.1, dtype=float)
+    initial_positions = np.arange(-1.0, -0.9, 0.001, dtype=float)
+    print(initial_times, initial_positions)
+    T, P = np.meshgrid(initial_times, initial_positions)
+    filepath = f'../temp/simulation_grid{T.shape[0]*T.shape[1]}_noise_e2.txt'
+    with tqdm(total=T.shape[0] * T.shape[1]) as pbar:
+        for i in range(T.shape[0]):
+            for j in range(T.shape[1]):
+                init_state = np.array([T[i,j],P[i,j]])
+                init_state = np.tile(init_state, (N_traj,1))
+                _, prob = model.trajectory_AMS(N_traj, init_state, downsample=False)
+                with open(filepath, "a") as f:
+                    f.write(
+                        f"{T[i,j]};{P[i,j]};{prob} \n"
+                    )
+                pbar.update(1)

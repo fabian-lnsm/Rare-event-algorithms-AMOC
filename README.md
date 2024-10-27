@@ -3,5 +3,5 @@ Rare-event algorithms for conceptual ocean models, mostly the Atlantic meridiona
 
 ### Collaborate
 ````
-git clone git@github.com:fabian-lnsm/Project_RareEventAlgorithms.git
+git clone git@github.com:fabian-lnsm/Rare-event-algorithms-AMOC.git
 ````

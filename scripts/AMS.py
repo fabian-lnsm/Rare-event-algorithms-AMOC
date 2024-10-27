@@ -189,11 +189,10 @@ class AMS():
 
         Returns
         -------
-        np.array of shape (nb_runs, 3)
-            Array containing the results of the runs. Each row contains the following information:
-            - Probability
-            - Number of iterations
-            - Number of transitions
+        Probability_mean, Probability_stddev : (float, float)
+            Tuple containing the result of the runs:
+            - Probability: Mean
+            - Probability: Standard deviation
 
         '''
         #print(f'Running {nb_runs} simulations...', flush=True)
@@ -226,7 +225,8 @@ if __name__ == "__main__":
 
     mu = 0.03
     dt = 0.01
-    model = DoubleWell_1D(mu, dt=dt)
+    noise_factor = 0.01
+    model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
     score_fct = score_x()
 
     N_traj = 1000
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     initial_times = np.arange(0,6,0.2, dtype=float)
     initial_positions = np.arange(-1,0,0.025, dtype=float)
     filepath = '../temp/'
-    filename = f'simulationAMS_runs{nb_runs}_grid{initial_times.shape[0] * initial_positions.shape[0]}.txt'
+    filename = f'simulationAMS_runs{nb_runs}_grid{initial_times.shape[0] * initial_positions.shape[0]}_noise{noise_factor}.txt'
     print(initial_times, initial_positions)
     T, P = np.meshgrid(initial_times, initial_positions)
     with tqdm(total=T.shape[0] * T.shape[1]) as pbar:

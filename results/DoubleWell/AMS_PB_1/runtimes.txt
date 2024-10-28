@@ -1,0 +1,2 @@
+runs1_grid1764: ~5h
+runs5_grid1200: ~6h

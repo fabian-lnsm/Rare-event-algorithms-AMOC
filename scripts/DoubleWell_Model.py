@@ -268,8 +268,8 @@ if __name__ == "__main__":
     model = DoubleWell_1D(mu, noise_factor)
     N_traj = 10000
 
-    initial_times = np.arange(0, 6, 0.1, dtype=float)
-    initial_positions = np.arange(-1.0, -0.9, 0.001, dtype=float)
+    initial_times = np.arange(0, 3, 0.05, dtype=float)
+    initial_positions = np.arange(-1.0, -0.96, 0.0005, dtype=float)
     print(initial_times, initial_positions)
     T, P = np.meshgrid(initial_times, initial_positions)
     filepath = f'../temp/simulation_grid{T.shape[0]*T.shape[1]}_noise_e2.txt'

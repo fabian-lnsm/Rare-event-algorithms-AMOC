@@ -221,7 +221,7 @@ class DoubleWell_1D:
         #print('Number of simulated timsteps:', traj.shape[1])
         #print('Transitioned trajectories:', transitions)
         #print('Transited back trajectories:', transit_back)
-        print(f'Probability: {prob:.3f}')
+        #print(f'Probability: {prob:.3f}')
 
         if downsample==True:
             # Downsample the trajectory to return model time units
@@ -264,15 +264,15 @@ class DoubleWell_1D:
 if __name__ == "__main__":
 
     mu = 0.03
-    noise_factor = 0.01
+    noise_factor = 0.05
     model = DoubleWell_1D(mu, noise_factor)
     N_traj = 10000
 
-    initial_times = np.arange(0, 3, 0.05, dtype=float)
-    initial_positions = np.arange(-1.0, -0.96, 0.0005, dtype=float)
+    initial_times = np.arange(0, 4, 0.1, dtype=float)
+    initial_positions = np.arange(-1.0, -0.7, 0.002, dtype=float)
     print(initial_times, initial_positions)
     T, P = np.meshgrid(initial_times, initial_positions)
-    filepath = f'../temp/simulation_grid{T.shape[0]*T.shape[1]}_noise_e2.txt'
+    filepath = f'../temp/simulation_grid{T.shape[0]*T.shape[1]}_noise_5e2.txt'
     with tqdm(total=T.shape[0] * T.shape[1]) as pbar:
         for i in range(T.shape[0]):
             for j in range(T.shape[1]):
@@ -284,3 +284,4 @@ if __name__ == "__main__":
                         f"{T[i,j]};{P[i,j]};{prob} \n"
                     )
                 pbar.update(1)
+

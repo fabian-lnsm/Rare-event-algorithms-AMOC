@@ -89,40 +89,20 @@ if __name__ == "__main__":
     from DoubleWell_Model import DoubleWell_1D
     model = DoubleWell_1D(mu = 0.03)
 
-    file_committor_1 = "../temp/simulationAMS_runs5_grid1200_noise_e1.txt" #more noise
-    file_committor_2 = "../temp/simulation_grid4860_noise_e2.txt" #less noise
+    file_committor = "../temp/simulation_grid320_noise_5e2.txt"
+    comm = committor(file_committor)
+    comm.set_gradients()
+    path = comm.gradient_ascent(0.5, -1.0, lr=0.01)
 
-    committor_1 = committor(file_committor_1)
-    committor_2 = committor(file_committor_2)
-    committor_1.set_gradients()
-    committor_2.set_gradients()
-    path_1 = committor_1.gradient_ascent(0.5, -1.0, lr=0.01)
-    path_2 = committor_2.gradient_ascent(0.5, -0.999, lr=0.01)
-
-    fig1, ax1 = plt.subplots(figsize=(7, 7), dpi=250)
-    fig1, ax1 = committor_1.plot_contour(fig1, ax1)
-    fig1, ax1 = committor_1.plot_gradient(fig1, ax1)
-    fig1, ax1 = committor_1.plot_ascent_path(fig1, ax1, path_1)
-    fig1, ax1 = plot_PB(fig1, ax1, model)
-    ax1.set_title(r'More noise: $g=0.1$')
-    ax1.legend()
-    fig1.savefig("../temp/committor_noise_e1.png")
-    print('Saved to ../temp/committor_noise_e1.png')
-    plt.close(fig1)
-
-    fig2, ax2 = plt.subplots(figsize=(7, 7), dpi=250)
-    fig2, ax2 = committor_2.plot_contour(fig2, ax2)
-    fig2, ax2 = committor_2.plot_gradient(fig2, ax2)
-    fig2, ax2 = committor_2.plot_ascent_path(fig2, ax2, path_2)
-    fig2, ax2 = plot_PB(fig2, ax2, model)
-    ax2.set_xlim(0, 1.5)
-    ax2.set_ylim(-1.0, -0.99)
-    ax2.set_title(r'Less noise: $g=0.01$')
-    ax2.legend()
-    fig2.savefig("../temp/committor_noise_e2.png")
-    print('Saved to ../temp/committor_noise_e2.png')
-    plt.close(fig2)
-    
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6), dpi=250)
+    fig, ax = comm.plot_contour(fig, ax)
+    #fig, ax = comm.plot_gradient(fig, ax)
+    #fig, ax = comm.plot_ascent_path(fig, ax, path)
+    fig, ax = plot_PB(fig, ax, model)
+    ax.set_title(r"Medium noise: $g=0.05$")
+    ax.legend()
+    fig.savefig("../temp/noise_5e2.png")
+    print('Saved to ../temp/noise_5e2.png')
 
 
 

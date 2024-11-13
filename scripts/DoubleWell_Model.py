@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import time as time
 
 
 class DoubleWell_1D:
@@ -12,8 +13,6 @@ class DoubleWell_1D:
     def __init__(self, mu : float, noise_factor : float = 0.1, dt : float = 0.01, seed=None):
 
         self.rng = np.random.Generator(np.random.PCG64(seed))
-        self.on = -1.0 #adjust according to position of equilibrium points
-        self.off = 1.0 #adjust according to position of equilibrium points
         self.mu = mu
         self.dt = dt
         self.noise_factor = noise_factor
@@ -34,8 +33,12 @@ class DoubleWell_1D:
         Every on-state is replaced with 1, all other states are replaced with 0
 
         """
-        distance_to_on = traj[..., 1] - self.on
-        return distance_to_on <= 0
+
+        time_current = np.round(traj[..., 0], 2)
+        #time_current = np.round(traj[0, 0], 2)
+        root_on = np.vectorize(self.on_dict.get)(time_current)
+        on = traj[..., 1] <= root_on #left of the first root (on-state)
+        return on
 
     def is_off(self, traj):
         """
@@ -51,9 +54,29 @@ class DoubleWell_1D:
         A np.array of shape (Number of trajectories, timesteps)
         Every off-state is replaced with 1, all other states are replaced with 0
 
+        """ 
+        time_current = np.round(traj[..., 0], 2)
+        #time_current = np.round(traj[0, 0], 2)
+        root_off = np.vectorize(self.off_dict.get)(time_current)
+        off = root_off <= traj[..., 1]
+        return off
+        
+
+    
+    def set_roots(self, all_t):
         """
-        distance_to_off = traj[..., 1] - self.off
-        return distance_to_off >= 0
+        Set the roots of the system for a given time interval.
+
+        Parameters
+        ----------
+        all_t : np.array of shape (Number of timesteps,)
+            The time points for which the roots should be computed.
+        
+        """
+        roots = np.real(np.array([np.roots([-1, 0, 1, self.mu*t]) for t in all_t]))
+        self.on_dict = dict(zip(all_t.T, roots[:, 1])) #left equilibrium point
+        self.off_dict = dict(zip(all_t.T, roots[:, 0])) #right equilibrium point
+    
 
     def number_of_transitioned_traj(self, traj):
         """
@@ -76,6 +99,18 @@ class DoubleWell_1D:
         The potential of the system at a given state.
         """
         return x**4 / 4 - x**2 / 2 - self.mu * x * t
+    
+    def plot_potential(self, t, ax):
+        '''
+        Plot the potential of the system at a given time.
+
+        '''
+        x = np.linspace(-2, 2, 1000)
+        y = self.potential(t, x)
+        ax.plot(x, y, label=f't={t}')
+        ax.set_xlabel('x')
+        ax.set_ylabel('V(x,t)')
+        return ax
 
     def force(self, t, x, mu):
         """
@@ -168,7 +203,7 @@ class DoubleWell_1D:
             self,
             N_traj: int,
             init_state: np.array,
-            downsample: bool = True,
+            downsample: bool = False,
     ):
         """
         Compute trajectories of the system of variable length (AMS) using Euler-Maruyama method.
@@ -190,7 +225,6 @@ class DoubleWell_1D:
             The computed trajectories downsampled to model time units.
 
         """
-
         traj = []
         traj.append(init_state)
         active_traj = np.arange(N_traj) # Index of the trajectories that are still running
@@ -259,15 +293,61 @@ class DoubleWell_1D:
         self.PB_traj = traj
         return traj
 
-
+   
 
 if __name__ == "__main__":
 
     mu = 0.03
+    noise_factor = 0.1
+    DW_model = DoubleWell_1D(mu, noise_factor)
+    times = np.arange(0, 25, 0.01, dtype=float).round(2)
+    DW_model.set_roots(times)
+    
+
+    N_traj = 1000
+    init_state = np.array([[5.0, -0.2]])
+    init_state = np.tile(init_state, (N_traj,1))
+
+    start = time.perf_counter()
+    traj, prob = DW_model.trajectory_AMS(N_traj, init_state, downsample=False)
+    simulated_steps = traj.shape[1]
+    end = time.perf_counter()
+    print(f'Time per step:{((end-start)/simulated_steps):.6f} seconds')
+    print(f'Probability: {prob:.3f}')
+
+'''
+    roots_off = np.vectorize(DW_model.off_dict.get)(times)
+    roots_on = np.vectorize(DW_model.on_dict.get)(times)
+    fig, ax = plt.subplots(dpi=250)
+    for i in range(N_traj):
+        ax.plot(traj[i, :, 0], traj[i, :, 1], linewidth=0.8)
+    ax.plot(times, roots_off, label='Off-state')
+    ax.plot(times, roots_on, label='On-state')
+    ax.scatter(init_state[0,0], init_state[0,1], color='black', label='Initial State', s=30, zorder=10)
+    ax.set_xlabel(r"Time $t$")
+    ax.set_ylabel(r"Position $x$")
+    ax.legend()
+    ax.grid()
+    ax.set_title(f"{N_traj} Trajectories with mu={mu} & noise = {noise_factor}")
+    fig.savefig('../temp/trajectories.png')
+    fig, ax = plt.subplots(dpi=250)
+    ax = DW_model.plot_potential(5, ax)
+    ax = DW_model.plot_potential(10, ax)
+    ax = DW_model.plot_potential(15, ax)
+    ax = DW_model.plot_potential(20, ax)
+    ax.legend()
+    ax.grid()
+    ax.set_title(f"Potentials for mu={mu}")
+    fig.savefig('../temp/potentials.png')
+'''
+
+
+
+
+""" mu = 0.03
     noise_factor = 0.05
     model = DoubleWell_1D(mu, noise_factor)
     N_traj = 10000
-
     initial_times = np.arange(0, 4, 0.1, dtype=float)
     initial_positions = np.arange(-1.0, -0.7, 0.002, dtype=float)
     print(initial_times, initial_positions)
@@ -284,4 +364,4 @@ if __name__ == "__main__":
                         f"{T[i,j]};{P[i,j]};{prob} \n"
                     )
                 pbar.update(1)
-
+    """

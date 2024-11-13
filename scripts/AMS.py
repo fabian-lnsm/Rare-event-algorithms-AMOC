@@ -21,9 +21,9 @@ class AMS():
 
 
     def set_score(self, score_function, *fixed_args, **fixed_kwargs):
-            self.score_function = score_function
-            self.fixed_args = fixed_args
-            self.fixed_kwargs = fixed_kwargs
+        self.score_function = score_function
+        self.fixed_args = fixed_args
+        self.fixed_kwargs = fixed_kwargs
 
     def comp_score(self, traj):
         return self.score_function(traj, *self.fixed_args, **self.fixed_kwargs)
@@ -31,6 +31,11 @@ class AMS():
 
     def set_model(self, model):
         self.model = model
+
+    def set_modelroots(self, times=None):
+        if times is None:
+            times = np.arange(0, 50, 0.01, dtype=float).round(2)
+        self.model.set_roots(times)
 
     def set_traj_func(self, traj_function, *fixed_args, **fixed_kwargs):
         self.traj_function = traj_function  # Store the function
@@ -51,8 +56,8 @@ class AMS():
         np.array of shape (N_traj, time, dimension)
             The simulated Trajectories
         '''
-
-        return self.traj_function(N_traj, init_state, *self.traj_fixed_args, **self.traj_fixed_kwargs)
+        traj, _ = self.traj_function(N_traj, init_state, *self.traj_fixed_args, **self.traj_fixed_kwargs)
+        return traj
 
     def run(self, init_state, zmax=1):
         '''
@@ -121,7 +126,6 @@ class AMS():
             new_ind = self.rng.choice(other_idx, size=len(idx))
             restart = np.nanargmax(score[new_ind]>=Q_min[:,np.newaxis], axis=1)
             init_clone = traj[new_ind,restart,:]
-
             new_traj = self.comp_traj(len(idx), init_clone)
             new_score = self.comp_score(new_traj)
 
@@ -144,8 +148,13 @@ class AMS():
                 score = np.concatenate((score, np.full((self.N_traj,new_max-max_Nt),np.nan)), axis=1)
                 max_Nt = new_max
 
+            print('------------------------------------', flush=True)
+            print('k',k, flush=True)
+
             # update the trajectories and scores
             for i in range(len(idx)):
+                print('len(idx)',len(idx), flush=True)
+
                 t, r, l = idx[i], restart[i], new_nt[i]
 
                 traj[t,:r+1,:] = traj[new_ind[i],:r+1,:]
@@ -154,14 +163,26 @@ class AMS():
                 score[t,:r+1] = score[new_ind[i],:r+1]
                 score[t,r+1:r+l] = new_score[i,1:l]
 
+                plt.plot(traj[t,:r+1,0], traj[t,:r+1,1],label='old')
+                plt.plot(traj[t,r+1:r+l,0], traj[t,r+1:r+l,1],label='new')
+                plt.plot(traj[t,r+l:,0], traj[t,r+l:,1],label='rest')
+                plt.legend()
+                plt.savefig(f'../temp//AMS_{k}_{i}.png')
                 onzone = self.model.is_on(traj[t])
+                print('onzone',onzone, flush=True)
                 offzone = self.model.is_off(traj[t])
+                print('offzone',offzone, flush=True)
 
                 score[t, onzone], score[t, offzone] = 0, 1
 
             #Prepare next iteration
             k += 1
             Q = np.nanmax(score,axis=1)
+            for i in range(self.N_traj):
+                plt.plot(traj[i,:,0], traj[i,:,1])
+            plt.show()
+            if k > 4:
+                break
 
         count_collapse = np.count_nonzero(Q>=zmax)
 
@@ -213,7 +234,7 @@ class AMS():
 
         t_end = time.perf_counter()
         runtime = t_end - t_start
-        #print('runtime:', runtime, flush=True)
+        print('runtime:', runtime, flush=True)
         return np.mean(stats[:,0]), np.std(stats[:,0])
 
         
@@ -225,35 +246,37 @@ if __name__ == "__main__":
 
     mu = 0.03
     dt = 0.01
-    noise_factor = 0.01
+    noise_factor = 0.1
     model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
     score_fct = score_x()
 
-    N_traj = 1000
-    nc = 10
+    N_traj = 10
+    nc = 1
+    nb_runs = 5
+
     AMS_algorithm = AMS(N_traj, nc)
     AMS_algorithm.set_score(score_fct.get_score)
     AMS_algorithm.set_model(model)
     AMS_algorithm.set_traj_func(model.trajectory_AMS, downsample=False)
+    AMS_algorithm.set_modelroots()
 
-    nb_runs = 5
+    init_state = np.array([[5.0, -0.2]])
+    init_state = np.tile(init_state, (N_traj,1))
+
+    #result = AMS_algorithm.run(init_state)
+    #print(result['probability'])
+
+    fig, ax = plt.subplots()
+    times = np.linspace(0,20,100)
+    positions = np.linspace(-1,1,100)
+    T, X = np.meshgrid(times, positions)
+    scores = AMS.comp_score(np.array([T,X]).T)
+    ax.scatter(T, X, c='black', s=scores)
+    plt.show()
+
+
     
-    initial_times = np.arange(0,6,0.2, dtype=float)
-    initial_positions = np.arange(-1,0,0.025, dtype=float)
-    filepath = '../temp/'
-    filename = f'simulationAMS_runs{nb_runs}_grid{initial_times.shape[0] * initial_positions.shape[0]}_noise{noise_factor}.txt'
-    print(initial_times, initial_positions)
-    T, P = np.meshgrid(initial_times, initial_positions)
-    with tqdm(total=T.shape[0] * T.shape[1]) as pbar:
-        for i in range(T.shape[0]):
-            for j in range(T.shape[1]):
-                init_state = np.array([T[i,j],P[i,j]])
-                a, b = AMS_algorithm.run_multiple(nb_runs,init_state)
-                with open(filepath + filename, "a") as f:
-                    f.write(
-                        f"{T[i,j]};{P[i,j]};{a};{b} \n"
-                    )
-                pbar.update(1)
+    
 
 
 

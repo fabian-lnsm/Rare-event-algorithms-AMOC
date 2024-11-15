@@ -27,16 +27,50 @@ class score_x:
         score = np.clip(score, 0, 1)
         return score
 
+class ScoreFunction_helper:
+    '''
+    Helper class for the score function. Needed for multiprocessing
+    '''
+    def __init__(self, reference_traj, normalised_curvilinear_coordinate, decay_length):
+        self.kdtree = KDTree(reference_traj)
+        self.normalised_curvilinear_coordinate = normalised_curvilinear_coordinate
+        self.decay_length = decay_length
+
+    def __call__(self, traj: np.array):
+        '''
+        Compute the score function for a given trajectory
+
+        Parameters
+        ----------
+        traj : np.array of shape (..., 2)
+            The trajectory for which to compute the score
+
+        Returns
+        -------
+        scores: np.array of shape (...)
+            The score for each trajectory point      
+        '''
+        original_shape = traj.shape[:-1]
+        traj_reshape = traj.reshape(-1, 2)
+
+        scores = np.full(traj_reshape.shape[0], np.nan)
+        valid_mask = ~np.isnan(traj_reshape).any(axis=1)
+        if valid_mask.any():
+            closest_distances, closest_point_indices = self.kdtree.query(traj_reshape[valid_mask])
+            s = self.normalised_curvilinear_coordinate[closest_point_indices]
+            scores[valid_mask] = s * np.exp(-(closest_distances / self.decay_length) ** 2)
+
+        return scores.reshape(original_shape)
+
 class score_PB:
     '''
     Pullback attractor as a score function
     '''
-    def __init__(self, model, decay_length):
+    def __init__(self, model, decay_length=0.2):
         self.decay_length = decay_length
         self.model = model
         self.PB_trajectory = model.get_pullback(return_between_equil=True)
         self.score_function = self.score_function_maker(self.PB_trajectory, self.decay_length)
-
 
     def curvilinear_coordinate(self, reference_traj):
         '''
@@ -51,21 +85,17 @@ class score_PB:
         normalised_curvilinear_coordinate : np.array of shape (timesteps)
 
         '''
-        
         nb_points = np.shape(reference_traj)[0]
-        
-        ds_2 = np.zeros(nb_points-1)
-        
+        ds_2 = np.zeros(nb_points - 1)
         for i in range(1, reference_traj.ndim):
-            dxi = reference_traj[1:,i]-reference_traj[:-1,i]
-            ds_2 = ds_2 + dxi**2
-            
+            dxi = reference_traj[1:, i] - reference_traj[:-1, i]
+            ds_2 = ds_2 + dxi ** 2
+
         curvilinear_coordinate = np.zeros(nb_points)
         curvilinear_coordinate[1:] = np.cumsum(np.sqrt(ds_2))
-        normalised_curvilinear_coordinate = curvilinear_coordinate/curvilinear_coordinate[-1]
-        
-        return normalised_curvilinear_coordinate
+        normalised_curvilinear_coordinate = curvilinear_coordinate / curvilinear_coordinate[-1]
 
+        return normalised_curvilinear_coordinate
 
     def score_function_maker(self, reference_traj, decay_length):
         '''
@@ -84,41 +114,13 @@ class score_PB:
             The score function
         '''
         normalised_curvilinear_coordinate = self.curvilinear_coordinate(reference_traj)
-        kdtree = KDTree(reference_traj)
+        return ScoreFunction_helper(reference_traj, normalised_curvilinear_coordinate, decay_length)
 
-
-        def score(traj : np.array):
-            '''
-            Compute the score function for a given trajectory
-
-            Parameters
-            ----------
-            traj : np.array of shape (..., 2)
-                The trajectory for which to compute the score
-
-            Returns
-            -------
-            scores: np.array of shape (...)
-                The score for each trajectory point      
-            '''
-
-            original_shape = traj.shape[:-1]
-            traj_reshape = traj.reshape(-1, 2) # reshape s.t. each entry is one point
-
-            scores = np.full(traj_reshape.shape[0], np.nan)
-            valid_mask = ~np.isnan(traj_reshape).any(axis=1)
-            if valid_mask.any():
-                closest_distances, closest_point_indices = kdtree.query(traj_reshape[valid_mask])
-                s = normalised_curvilinear_coordinate[closest_point_indices] 
-                scores[valid_mask] = s * np.exp(-(closest_distances / decay_length) ** 2)
-
-            return scores.reshape(original_shape)
-        
-        return score
-    
-    def get_score(self, traj : np.array):
+    def get_score(self, traj):
         return self.score_function(traj)
 
+ 
+        
 if __name__=='__main__':
 
     from DoubleWell_Model import DoubleWell_1D

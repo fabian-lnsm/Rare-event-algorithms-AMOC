@@ -90,8 +90,7 @@ class AMS():
             - **scores** (_np.array of shape (N_traj, time)_):
             Scores of the trajectories.
 
-            - **runtime** (_float_):
-            Execution time.
+
             
         '''
         k, w = 0, 1
@@ -104,24 +103,18 @@ class AMS():
         score[onzone], score[offzone] = 0, 1
 
         Q = np.nanmax(score,axis=1)
-        time_idx, time_newtraj, time_update = [], [], []
         while len(np.unique(Q)) > self.nc:
-            time_start = time.perf_counter()
             threshold = np.unique(Q)[self.nc-1]
             idx, other_idx = np.flatnonzero(Q<=threshold), np.flatnonzero(Q>threshold)
             w *= (1-len(idx)/self.N_traj)
             Q_min = Q[idx]
-            time_idx.append(time.perf_counter() - time_start)
 
-            time_start = time.perf_counter()
             new_ind = self.rng.choice(other_idx, size=len(idx))
             restart = np.nanargmax(score[new_ind]>=Q_min[:,np.newaxis], axis=1)
             init_clone = traj[new_ind,restart,:]
             new_traj = self.comp_traj(len(idx), init_clone)
             max_length_newtraj = np.max(restart + self.get_true_length(new_traj))
-            time_newtraj.append(time.perf_counter() - time_start)
 
-            time_start = time.perf_counter()
             if max_length_newtraj > max_length:
                 traj = np.concatenate((traj, np.full((self.N_traj,max_length_newtraj-max_length,self.dimension),np.nan)), axis=1)
                 score = np.concatenate((score, np.full((self.N_traj,max_length_newtraj-max_length),np.nan)), axis=1)
@@ -136,18 +129,12 @@ class AMS():
                 onzone = self.model.is_on(traj[tr_idx])
                 offzone = self.model.is_off(traj[tr_idx])
                 score[tr_idx, onzone], score[tr_idx, offzone] = 0, 1
-            
-            time_update.append(time.perf_counter() - time_start)
-            
+                    
 
             #Prepare next iteration
             k += 1
             Q = np.nanmax(score,axis=1)
 
-
-        print('time_idx:', sum(time_idx))
-        print('time_newtraj:', sum(time_newtraj))
-        print('time_update:', sum(time_update))
         count_collapse = np.count_nonzero(Q>=zmax)
         return dict({
             'probability':w*count_collapse/self.N_traj,
@@ -157,7 +144,8 @@ class AMS():
             'scores':score,
             })
     
-    def _run_single(self, init_state):
+    def _run_single(self, init_state, seed):
+        self.reset_seed(seed)
         return self.run(init_state)
     
     def run_multiple(self, nb_runs:int, init_state : np.array):
@@ -184,8 +172,9 @@ class AMS():
             init_state = np.tile(init_state, (self.N_traj,1))
 
         t_start = time.perf_counter()
+        seeds = [np.random.randint(0, 2**16 - 1) for _ in range(nb_runs)]
         with Pool() as pool:
-            results = pool.map(self._run_single, [init_state] * nb_runs)
+            results = pool.starmap(self._run_single, [(init_state, seed) for seed in seeds])
 
         stats = np.zeros((nb_runs, 3))
         for i, result in enumerate(results):
@@ -196,6 +185,8 @@ class AMS():
         t_end = time.perf_counter()
         runtime = t_end - t_start
         print('runtime:', runtime, flush=True)
+        print('Average runtime:', runtime/nb_runs, flush=True)
+        print('Probabilities:', stats[:,0], flush=True)
         return np.mean(stats[:,0]), np.std(stats[:,0])
 
         
@@ -209,11 +200,11 @@ if __name__ == "__main__":
     dt = 0.01
     noise_factor = 0.1
     model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
-    score_fct = score_x()
+    score_fct = score_PB(model)
 
     N_traj = 1000
     nc = 10
-    nb_runs = 5
+    nb_runs = 10
 
     AMS_algorithm = AMS(N_traj, nc)
     AMS_algorithm.set_score(score_fct.get_score)
@@ -224,9 +215,10 @@ if __name__ == "__main__":
     init_state = np.array([[0.0, -1.0]])
     init_state = np.tile(init_state, (N_traj,1))
 
-    result = AMS_algorithm.run(init_state)
-    print('probability: ',result['probability'])
+    prob_avg, prob_stddev = AMS_algorithm.run_multiple(nb_runs, init_state)
+    print(f'Probability: {prob_avg} +/- {prob_stddev}')
 
+    '''
     fig, ax = plt.subplots(dpi=250)
     length_max = np.max(AMS_algorithm.get_true_length(result['trajectories']))
     times = np.arange(0, init_state[0,0] + length_max*dt, dt)
@@ -239,7 +231,7 @@ if __name__ == "__main__":
     ax.legend()
     ax.grid()
     fig.savefig('../temp/AMS_trajectories.png')
-
+    '''
 
     
     

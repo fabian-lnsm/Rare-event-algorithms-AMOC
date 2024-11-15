@@ -24,6 +24,7 @@ class score_x:
         """
         x_value = traj[..., 1]
         score = (x_value + self.equilibrium) / (2 * self.equilibrium)
+        score = np.clip(score, 0, 1)
         return score
 
 class score_PB:

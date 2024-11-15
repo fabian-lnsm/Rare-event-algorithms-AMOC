@@ -62,7 +62,6 @@ class DoubleWell_1D:
         return off
         
 
-    
     def set_roots(self, all_t):
         """
         Set the roots of the system for a given time interval.
@@ -76,7 +75,14 @@ class DoubleWell_1D:
         roots = np.real(np.array([np.roots([-1, 0, 1, self.mu*t]) for t in all_t]))
         self.on_dict = dict(zip(all_t.T, roots[:, 1])) #left equilibrium point
         self.off_dict = dict(zip(all_t.T, roots[:, 0])) #right equilibrium point
-    
+
+    def plot_OnOff(self, times, ax):
+        self.set_roots(times)
+        off_state = np.vectorize(self.off_dict.get)(times)
+        on_state = np.vectorize(self.on_dict.get)(times)
+        ax.plot(times, off_state, label='On/Off-states', color='blue', linestyle='--')
+        ax.plot(times, on_state, color='blue', linestyle='--')
+        return ax
 
     def number_of_transitioned_traj(self, traj):
         """

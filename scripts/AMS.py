@@ -58,6 +58,9 @@ class AMS():
         '''
         traj, _ = self.traj_function(N_traj, init_state, *self.traj_fixed_args, **self.traj_fixed_kwargs)
         return traj
+    
+    def get_true_length(self, traj):
+        return np.where(np.isnan(traj).any(axis=2).any(axis=1), np.argmax(np.isnan(traj).any(axis=2), axis=1), traj.shape[1])
 
     def run(self, init_state, zmax=1):
         '''
@@ -94,98 +97,52 @@ class AMS():
         '''
         k, w = 0, 1
 
-        # For convenience, trajectories are stored in an array of shape (N, T, dimension)
-        # But trajectories stop when they reach either region B or come back to region A
-        # So they all have different lengths
-        # All trajectories are padded at the end with NaNs so that they have the same length
-
         traj = self.comp_traj(self.N_traj, init_state)
-
-        # Find the actual length of each trajectory (i.e. the first NaN)
-        Nt = np.argmax(np.isnan(traj).any(axis=2), axis=1)
-        Nt = np.where(Nt == 0, traj.shape[1], Nt) # If there is no NaN, it is the longest trajectory
-        max_Nt = np.max(Nt) 
-
+        max_length = traj.shape[1]
         score = self.comp_score(traj)
         onzone = self.model.is_on(traj)
         offzone = self.model.is_off(traj)
         score[onzone], score[offzone] = 0, 1
 
         Q = np.nanmax(score,axis=1)
-
         while len(np.unique(Q)) > self.nc:
+            #print('------------------------------------', flush=True)
+            #print('k',k, flush=True)
 
-            threshold = np.unique(Q)[self.nc-1] #Because Python counts from 0
+            threshold = np.unique(Q)[self.nc-1]
             idx, other_idx = np.flatnonzero(Q<=threshold), np.flatnonzero(Q>threshold)
+            w *= (1-len(idx)/self.N_traj)
             Q_min = Q[idx]
 
-            #Update weights
-            w *= (1-len(idx)/self.N_traj)
-
-            # Create new trajectories
             new_ind = self.rng.choice(other_idx, size=len(idx))
             restart = np.nanargmax(score[new_ind]>=Q_min[:,np.newaxis], axis=1)
             init_clone = traj[new_ind,restart,:]
             new_traj = self.comp_traj(len(idx), init_clone)
-            new_score = self.comp_score(new_traj)
+            max_length_newtraj = np.max(restart + self.get_true_length(new_traj))
 
+            if max_length_newtraj > max_length:
+                #print('Pad arrays', flush=True)
+                traj = np.concatenate((traj, np.full((self.N_traj,max_length_newtraj-max_length,self.dimension),np.nan)), axis=1)
+                score = np.concatenate((score, np.full((self.N_traj,max_length_newtraj-max_length),np.nan)), axis=1)
+                max_length = max_length_newtraj
 
-            # Find the actual length of each new trajectory (i.e. the first NaN)
-            new_nt = np.argmax(np.isnan(new_traj).any(axis=2), axis=1)
-            new_nt[np.all(~np.isnan(new_traj), axis=(1, 2))] = new_traj.shape[1]
-
-            # Update the length of the resimulated trajectories
-            Nt[idx] = restart + new_nt
-            new_max = np.max(Nt[idx])
-
-            # If the nex max length is greater than the current max length, we need to pad the arrays
-            # We need to add new_max - max_Nt NaNs at the end of each trajectory to make sure the array traj is large enough
-            if new_max > max_Nt:
-                if self.dimension > 1:
-                    traj = np.concatenate((traj, np.full((self.N_traj,new_max-max_Nt,self.dimension),np.nan)), axis=1)
-                else:
-                    traj = np.concatenate((traj, np.full((self.N_traj,new_max-max_Nt),np.nan)), axis=1)
-                score = np.concatenate((score, np.full((self.N_traj,new_max-max_Nt),np.nan)), axis=1)
-                max_Nt = new_max
-
-            print('------------------------------------', flush=True)
-            print('k',k, flush=True)
-
-            # update the trajectories and scores
             for i in range(len(idx)):
-                print('len(idx)',len(idx), flush=True)
+                tr_idx, rs, length = idx[i], restart[i], self.get_true_length(new_traj)[i]
+                traj[tr_idx,:rs+1,:] = traj[new_ind[i],:rs+1,:]
+                traj[tr_idx,rs+1:rs+length,:] = new_traj[i,1:length,:]
+                traj[tr_idx,rs+length:,:] = np.nan
+                score[tr_idx,:] = self.comp_score(traj[tr_idx,:,:])
+                onzone = self.model.is_on(traj[tr_idx])
+                offzone = self.model.is_off(traj[tr_idx])
+                score[tr_idx, onzone], score[tr_idx, offzone] = 0, 1
 
-                t, r, l = idx[i], restart[i], new_nt[i]
-
-                traj[t,:r+1,:] = traj[new_ind[i],:r+1,:]
-                traj[t,r+1:r+l,:] = new_traj[i,1:l,:]
-
-                score[t,:r+1] = score[new_ind[i],:r+1]
-                score[t,r+1:r+l] = new_score[i,1:l]
-
-                plt.plot(traj[t,:r+1,0], traj[t,:r+1,1],label='old')
-                plt.plot(traj[t,r+1:r+l,0], traj[t,r+1:r+l,1],label='new')
-                plt.plot(traj[t,r+l:,0], traj[t,r+l:,1],label='rest')
-                plt.legend()
-                plt.savefig(f'../temp//AMS_{k}_{i}.png')
-                onzone = self.model.is_on(traj[t])
-                print('onzone',onzone, flush=True)
-                offzone = self.model.is_off(traj[t])
-                print('offzone',offzone, flush=True)
-
-                score[t, onzone], score[t, offzone] = 0, 1
 
             #Prepare next iteration
             k += 1
             Q = np.nanmax(score,axis=1)
-            for i in range(self.N_traj):
-                plt.plot(traj[i,:,0], traj[i,:,1])
-            plt.show()
-            if k > 4:
-                break
+
 
         count_collapse = np.count_nonzero(Q>=zmax)
-
         return dict({
             'probability':w*count_collapse/self.N_traj,
             'iterations':k,
@@ -216,14 +173,13 @@ class AMS():
             - Probability: Standard deviation
 
         '''
-        #print(f'Running {nb_runs} simulations...', flush=True)
+        print(f'Running {nb_runs} simulations...', flush=True)
 
         if init_state.ndim == 1:
             init_state = np.tile(init_state, (self.N_traj,1))
 
         t_start = time.perf_counter()
         with Pool() as pool:
-            # Map the run method across nb_runs
             results = pool.map(self._run_single, [init_state] * nb_runs)
 
         stats = np.zeros((nb_runs, 3))
@@ -250,7 +206,7 @@ if __name__ == "__main__":
     model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
     score_fct = score_x()
 
-    N_traj = 10
+    N_traj = 20
     nc = 1
     nb_runs = 5
 
@@ -260,19 +216,24 @@ if __name__ == "__main__":
     AMS_algorithm.set_traj_func(model.trajectory_AMS, downsample=False)
     AMS_algorithm.set_modelroots()
 
-    init_state = np.array([[5.0, -0.2]])
+    init_state = np.array([[0.0, -1.0]])
     init_state = np.tile(init_state, (N_traj,1))
 
-    #result = AMS_algorithm.run(init_state)
-    #print(result['probability'])
+    result = AMS_algorithm.run(init_state)
+    print('probability: ',result['probability'])
 
-    fig, ax = plt.subplots()
-    times = np.linspace(0,20,100)
-    positions = np.linspace(-1,1,100)
-    T, X = np.meshgrid(times, positions)
-    scores = AMS.comp_score(np.array([T,X]).T)
-    ax.scatter(T, X, c='black', s=scores)
-    plt.show()
+    fig, ax = plt.subplots(dpi=250)
+    length_max = np.max(AMS_algorithm.get_true_length(result['trajectories']))
+    times = np.arange(0, init_state[0,0] + length_max*dt, dt)
+    ax = model.plot_OnOff(times, ax)
+    ax.scatter(init_state[0,0], init_state[0,1], color='black', label='Initial State', s=30, zorder=10)
+    for i in range(N_traj):
+        ax.plot(result['trajectories'][i,:,0], result['trajectories'][i,:,1])
+    ax.set_xlabel(r'$t$')
+    ax.set_ylabel(r'$x$')
+    ax.legend()
+    ax.grid()
+    fig.savefig('../temp/AMS_trajectories.png')
 
 
     

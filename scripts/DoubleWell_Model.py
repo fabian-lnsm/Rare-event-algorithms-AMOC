@@ -17,7 +17,7 @@ class DoubleWell_1D:
         self.dt = dt
         self.noise_factor = noise_factor
 
-
+    
     def is_on(self, traj):
         """
         Checks for on-states in a set of trajectories.
@@ -35,7 +35,6 @@ class DoubleWell_1D:
         """
 
         time_current = np.round(traj[..., 0], 2)
-        #time_current = np.round(traj[0, 0], 2)
         root_on = np.vectorize(self.on_dict.get)(time_current)
         on = traj[..., 1] <= root_on #left of the first root (on-state)
         return on
@@ -56,12 +55,47 @@ class DoubleWell_1D:
 
         """ 
         time_current = np.round(traj[..., 0], 2)
-        #time_current = np.round(traj[0, 0], 2)
         root_off = np.vectorize(self.off_dict.get)(time_current)
         off = root_off <= traj[..., 1]
         return off
-        
+    '''       
+    def is_on(self, traj):
+        """
+        Checks for on-states in a set of trajectories.
+        On-state = left equibrium point of the bistable system
 
+        Parameters
+        ----------
+        traj : np.array of shape (Number of trajectories, timesteps, 2)
+
+        Returns
+        -------
+        A np.array of shape (Number of trajectories, timesteps)
+        Every on-state is replaced with 1, all other states are replaced with 0
+
+        """
+        distance_to_on = traj[..., 1] + 1
+        return distance_to_on <= 0
+
+    def is_off(self, traj):
+        """
+        Checks for off-states in a set of trajectories.
+        Off-state = right equilibrium point of the bistable system
+
+        Parameters
+        ----------
+        traj : np.array of shape (Number of trajectories, timesteps, 2)
+
+        Returns
+        -------
+        A np.array of shape (Number of trajectories, timesteps)
+        Every off-state is replaced with 1, all other states are replaced with 0
+
+        """
+        distance_to_off = traj[..., 1] - 1
+        return distance_to_off >= 0
+    '''
+    
     def set_roots(self, all_t):
         """
         Set the roots of the system for a given time interval.

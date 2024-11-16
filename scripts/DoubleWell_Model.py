@@ -328,7 +328,7 @@ class DoubleWell_1D:
         ) # noise_factor=0 to get deterministic trajectory & return all timesteps
         traj = np.mean(traj, axis=0)
         if return_between_equil==True:
-            mask = (traj[:,0] >= 0) & (traj[:,1] <= 1.0)
+            mask = (traj[:,0] >= 0) & (traj[:,1] <= 1.3)
             traj = traj[mask]
         self.PB_traj = traj
         return traj

@@ -60,7 +60,9 @@ class ScoreFunction_helper:
             s = self.normalised_curvilinear_coordinate[closest_point_indices]
             scores[valid_mask] = s * np.exp(-(closest_distances / self.decay_length) ** 2)
 
-        return scores.reshape(original_shape)
+        scores = np.clip(scores, 0, 1)
+        scores = scores.reshape(original_shape)
+        return scores
 
 class score_PB:
     '''

@@ -154,9 +154,8 @@ class AMS():
         ----------
         nb_runs : int
             Number of runs
-        init_state : np.array of shape (N_traj, dimension) or (dimension,)
+        init_state : np.array of shape (N_traj, dimension)
             Initial state of all trajectories. \n
-            If the dimension is 1, the initial state is copied to be the same for each of the N_traj trajectories.
 
         Returns
         -------
@@ -167,9 +166,8 @@ class AMS():
 
         '''
         print(f'Running {nb_runs} simulations...', flush=True)
-
-        if init_state.ndim == 1:
-            init_state = np.tile(init_state, (self.N_traj,1))
+        self.init = init_state[0,:]
+        self.nb_runs = nb_runs
 
         t_start = time.perf_counter()
         seeds = [np.random.randint(0, 2**16 - 1) for _ in range(nb_runs)]
@@ -184,10 +182,25 @@ class AMS():
 
         t_end = time.perf_counter()
         runtime = t_end - t_start
-        print('runtime:', runtime, flush=True)
-        print('Average runtime:', runtime/nb_runs, flush=True)
-        print('Probabilities:', stats[:,0], flush=True)
-        return np.mean(stats[:,0]), np.std(stats[:,0])
+        self.runtime = runtime
+        print('Total runtime:', runtime, flush=True)
+        print(f'Probability: {np.mean(stats[:,0])} +/- {np.std(stats[:,0])}', flush=True)
+        return stats
+    
+    def write_results(self, stats, filename):
+        prob = (np.mean(stats[:,0]), np.std(stats[:,0]))
+        iter = (np.mean(stats[:,1]), np.std(stats[:,1]))
+        trans = (np.mean(stats[:,2]), np.std(stats[:,2]))
+        with open(filename, 'a') as f:
+            f.write(f'Model: g={self.model.noise_factor}, mu={self.model.mu}, runs={self.nb_runs}, N_traj={self.N_traj}, nc={self.nc} \n')
+            f.write(f'Score function: {self.score_function}\n')
+            f.write(f'Runtime: {self.runtime}\n')
+            f.write(f'Initial state: {self.init}\n')
+            f.write(f'Probability: {prob[0]} +/- {prob[1]}\n')
+            f.write(f'Iterations: {iter[0]} +/- {iter[1]}\n')
+            f.write(f'Transitions: {trans[0]} +/- {trans[1]}\n')
+            f.write('\n')
+        print('Results written to', filename, flush=True)
 
         
 if __name__ == "__main__":
@@ -198,9 +211,10 @@ if __name__ == "__main__":
 
     mu = 0.03
     dt = 0.01
-    noise_factor = 0.1
+    noise_factor = 0.05
     model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
-    score_fct = score_PB(model)
+    #score_fct = score_PB(model)
+    score_fct = score_x()
 
     N_traj = 1000
     nc = 10
@@ -212,28 +226,16 @@ if __name__ == "__main__":
     AMS_algorithm.set_traj_func(model.trajectory_AMS, downsample=False)
     AMS_algorithm.set_modelroots()
 
-    init_state = np.array([[0.0, -1.0]])
+    #init_state = np.array([[0.0, -1.0]]) #e-9,e-12
+    #init_state = np.array([[2.0, -0.6]]) #e-6,e-9
+    #init_state = np.array([[3.0, -0.4]]) #e-4,e-6
+    init_state = np.array([[4.0, -0.3]]) #e-2,e-5
     init_state = np.tile(init_state, (N_traj,1))
+    results = AMS_algorithm.run_multiple(nb_runs, init_state)
+    AMS_algorithm.write_results(results, '../temp/AMS_results.txt')
 
-    prob_avg, prob_stddev = AMS_algorithm.run_multiple(nb_runs, init_state)
-    print(f'Probability: {prob_avg} +/- {prob_stddev}')
 
-    '''
-    fig, ax = plt.subplots(dpi=250)
-    length_max = np.max(AMS_algorithm.get_true_length(result['trajectories']))
-    times = np.arange(0, init_state[0,0] + length_max*dt, dt)
-    ax = model.plot_OnOff(times, ax)
-    ax.scatter(init_state[0,0], init_state[0,1], color='black', label='Initial State', s=30, zorder=10)
-    for i in range(N_traj):
-        ax.plot(result['trajectories'][i,:,0], result['trajectories'][i,:,1])
-    ax.set_xlabel(r'$t$')
-    ax.set_ylabel(r'$x$')
-    ax.legend()
-    ax.grid()
-    fig.savefig('../temp/AMS_trajectories.png')
-    '''
-
-    
+   
     
 
 

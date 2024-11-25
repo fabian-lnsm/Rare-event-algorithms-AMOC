@@ -55,7 +55,7 @@ class AMS():
         np.array of shape (N_traj, time, dimension)
             The simulated Trajectories
         '''
-        traj, _ = self.traj_function(N_traj, init_state, *self.traj_fixed_args, **self.traj_fixed_kwargs)
+        traj, _ , _ = self.traj_function(N_traj, init_state, *self.traj_fixed_args, **self.traj_fixed_kwargs)
         return traj
     
     def get_true_length(self, traj):
@@ -188,9 +188,9 @@ class AMS():
         return stats
     
     def write_results(self, stats, filename):
-        prob = (np.mean(stats[:,0]), np.std(stats[:,0]))
-        iter = (np.mean(stats[:,1]), np.std(stats[:,1]))
-        trans = (np.mean(stats[:,2]), np.std(stats[:,2]))
+        prob = (np.mean(stats[:,0]), np.std(stats[:,0], ddof=1))
+        iter = (np.mean(stats[:,1]), np.std(stats[:,1], ddof=1))
+        trans = (np.mean(stats[:,2]), np.std(stats[:,2], ddof=1))
         with open(filename, 'a') as f:
             f.write(f'Model: g={self.model.noise_factor}, mu={self.model.mu}, runs={self.nb_runs}, N_traj={self.N_traj}, nc={self.nc} \n')
             f.write(f'Score function: {self.score_function}\n')
@@ -211,7 +211,7 @@ if __name__ == "__main__":
 
     mu = 0.03
     dt = 0.01
-    noise_factor = 0.05
+    noise_factor = 0.1
     model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
     #score_fct = score_PB(model)
     score_fct = score_x()
@@ -226,13 +226,17 @@ if __name__ == "__main__":
     AMS_algorithm.set_traj_func(model.trajectory_AMS, downsample=False)
     AMS_algorithm.set_modelroots()
 
+    init_states = np.array([[0.0, -1.0], [4.0, -0.9], [7.0, -0.85], [10.0, -0.75]])
     #init_state = np.array([[0.0, -1.0]]) #e-9,e-12
     #init_state = np.array([[2.0, -0.6]]) #e-6,e-9
     #init_state = np.array([[3.0, -0.4]]) #e-4,e-6
-    init_state = np.array([[4.0, -0.3]]) #e-2,e-5
-    init_state = np.tile(init_state, (N_traj,1))
-    results = AMS_algorithm.run_multiple(nb_runs, init_state)
-    AMS_algorithm.write_results(results, '../temp/AMS_results.txt')
+    #init_state = np.array([[4.0, -0.3]]) #e-2,e-5
+    init_states = np.array([[0.0, -1.0], [2.0, -0.6], [3.0, -0.4], [4.0, -0.3]])
+    for i, init_state in enumerate(init_states):
+        print(f'Initial state {i+1}: {init_state}', flush=True)
+        init_state = np.tile(init_state, (N_traj,1))
+        results = AMS_algorithm.run_multiple(nb_runs, init_state)
+        AMS_algorithm.write_results(results, '../temp/AMS_results.txt')
 
 
    

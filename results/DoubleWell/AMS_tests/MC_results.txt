@@ -1,0 +1,78 @@
+Model: mu=0.03, noise=0.1
+Initial state: [10.         -0.78648254]
+Number of trajectories: 10000
+Number of transitions: 122
+Probability: 0.0122
+Runtime: 0.8384988999459893
+
+Model: mu=0.03, noise=0.1
+Initial state: [ 7.         -0.87117525]
+Number of trajectories: 50000
+Number of transitions: 31
+Probability: 0.00062
+Runtime: 4.15836440003477
+
+Model: mu=0.03, noise=0.1
+MC paramaters: 30 transitions, 100000 trajectories per run
+Initial state: [ 4.         -0.93351693]
+Number of trajectories: 1800000
+Number of transitions: 30
+Probability: 1.6666666666666667e-05
+Runtime: 99.186275199987
+
+Model: mu=0.03, noise=0.1
+MC paramaters: 30 transitions, 100000 trajectories per run
+Initial state: [ 2.         -0.96853005]
+Number of trajectories: 33100000
+Number of transitions: 30
+Probability: 9.063444108761329e-07
+Runtime: 1135.8197761999909
+
+Model: mu=0.03, noise=0.1
+MC paramaters: 30 transitions, 100000 trajectories per run
+Initial state: [ 4.         -0.93351693]
+Number of trajectories: 1700000
+Number of transitions: 31
+Probability: 1.8235294117647057e-05
+Runtime: 74.40500159992371
+
+Model: mu=0.03, noise=0.1
+MC paramaters: 30 transitions, 100000 trajectories per run
+Initial state: [ 7.         -0.87117525]
+Number of trajectories: 100000
+Number of transitions: 57
+Probability: 0.00057
+Runtime: 4.895628499914892
+
+Model: mu=0.03, noise=0.1
+MC paramaters: 30 transitions, 100000 trajectories per run
+Initial state: [10.         -0.78648254]
+Number of trajectories: 100000
+Number of transitions: 968
+Probability: 0.00968
+Runtime: 5.227790999924764
+
+Model: mu=0.03, noise=0.1
+MC paramaters: 30 transitions, 100000 trajectories per run
+Initial state: [ 4.         -0.93351693]
+Number of trajectories: 1300000
+Number of transitions: 30
+Probability: 2.3076923076923076e-05
+Runtime: 66.84271439991426
+
+Model: mu=0.03, noise=0.1
+MC paramaters: 30 transitions, 100000 trajectories per run
+Initial state: [ 7.         -0.87117525]
+Number of trajectories: 100000
+Number of transitions: 64
+Probability: 0.00064
+Runtime: 5.117733699968085
+
+Model: mu=0.03, noise=0.1
+MC paramaters: 30 transitions, 100000 trajectories per run
+Initial state: [10.         -0.78648254]
+Number of trajectories: 100000
+Number of transitions: 950
+Probability: 0.0095
+Runtime: 5.257222400046885
+

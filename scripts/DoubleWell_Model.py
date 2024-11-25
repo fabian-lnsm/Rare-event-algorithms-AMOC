@@ -107,6 +107,7 @@ class DoubleWell_1D:
         
         """
         roots = np.real(np.array([np.roots([-1, 0, 1, self.mu*t]) for t in all_t]))
+        self.root_times = all_t
         self.on_dict = dict(zip(all_t.T, roots[:, 1])) #left equilibrium point
         self.off_dict = dict(zip(all_t.T, roots[:, 0])) #right equilibrium point
 
@@ -239,6 +240,50 @@ class DoubleWell_1D:
             trajectories = trajectories[:, ::i, :]
         return trajectories
     
+    def simulate_AMS_MC(
+        self,
+        init_state: np.ndarray,
+        N_transitions: int = 30,
+        N_traj: int = 100000,
+        filepath: str = None,
+    ):
+        '''
+        Compute Trajectories until a fixed number of transitions is reached. Returns the transition probability.
+        '''
+        print('-'*50)
+        print(f'Computing probability for {init_state[0,:]}', flush=True)
+        print('-'*50)
+        transitions = 0
+        simulated_traj = 0
+        time_start = time.perf_counter()
+        while transitions < N_transitions:
+            _, _, transit = self.trajectory_AMS(N_traj, init_state, downsample=False)
+            transitions += transit
+            simulated_traj += N_traj
+            print(f'Current: {simulated_traj} traj with {transitions} transitions', flush=True)
+        prob = transitions/simulated_traj
+        time_end = time.perf_counter()
+        runtime = time_end - time_start
+        print('-'*50)
+        print('Success!')
+        print('-'*50)
+        print(f'Total runtime: {runtime}')
+        print(f'Number of trajectories: {simulated_traj}')
+        print(f'Number of transitions: {transitions}')
+        print(f'Probability: {prob}')
+        if filepath is not None:
+            with open(filepath, 'a') as f:
+                f.write(f'Model: mu={self.mu}, noise={self.noise_factor}\n')
+                f.write(f'MC paramaters: {N_transitions} transitions, {N_traj} trajectories per run\n')
+                f.write(f'Initial state: {init_state[0,:]}\n')
+                f.write(f'Number of trajectories: {simulated_traj}\n')
+                f.write(f'Number of transitions: {transitions}\n')
+                f.write(f'Probability: {prob}\n')
+                f.write(f'Runtime: {runtime}\n')
+                f.write('\n')
+        return prob
+        
+    
     def trajectory_AMS(
             self,
             N_traj: int,
@@ -302,7 +347,7 @@ class DoubleWell_1D:
             i = int(1 / self.dt)
             traj = traj[:, ::i, :]
 
-        return traj, prob
+        return traj, prob, transitions
 
 
     def get_pullback(self, return_between_equil: bool = False, N_traj=100, T_max=400, t_0=-200):
@@ -333,75 +378,61 @@ class DoubleWell_1D:
         self.PB_traj = traj
         return traj
 
-   
+    def plot_OnOffStates(self,  ax):
+        '''
+        Plot the on/off states of the system for a given time interval.
+        '''
+        off_state = np.vectorize(self.off_dict.get)(self.root_times)
+        on_state = np.vectorize(self.on_dict.get)(self.root_times)
+        ax.plot(self.root_times, off_state, label='Off-state', color='darkred')
+        ax.plot(self.root_times, on_state, label='On-state', color='blue')
+        ax.set_xlabel(r"Time $t$")
+        ax.set_ylabel(r"Position $x$")
+        ax.grid()
+        ax.set_title(f"Phase space with mu={self.mu} & noise = {self.noise_factor}")
+        return ax
+
+    def plot_pullback(self, ax):
+        '''
+        Plot the pullback trajectory of the system.
+        '''
+        PB_traj = self.get_pullback(return_between_equil = True)
+        ax.plot(
+                PB_traj[:, 0],
+                PB_traj[:, 1],
+                label="PB attractor",
+                color="black", linewidth=2, linestyle='--'
+                )
+        return ax
 
 if __name__ == "__main__":
 
+    # Set up the model
     mu = 0.03
     noise_factor = 0.1
     DW_model = DoubleWell_1D(mu, noise_factor)
-    times = np.arange(0, 25, 0.01, dtype=float).round(2)
-    DW_model.set_roots(times)
+    root_times = np.arange(0, 25, 0.01, dtype=float).round(2)  # Time points for which the roots should be computed
+    DW_model.set_roots(root_times) 
+
+    # Set up initial states
+    init_times = np.array([4.0, 7.0, 10.0])
+    init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
+    init_states = np.stack([init_times, init_positions], axis=1)
+
+
+    #Plotting phase-space with initial states: Writes plot to file
+    fig, ax = plt.subplots(dpi=250)
+    ax = DW_model.plot_OnOffStates(ax)
+    ax.scatter(init_states[:,0], init_states[:,1], color='black', label='Initial States', s=30, zorder=10)
+    ax = DW_model.plot_pullback(ax)
+    ax.legend()
+    fig.savefig('../temp/phase_space.png')
     
 
-    N_traj = 1000
-    init_state = np.array([[5.0, -0.2]])
-    init_state = np.tile(init_state, (N_traj,1))
-
-    start = time.perf_counter()
-    traj, prob = DW_model.trajectory_AMS(N_traj, init_state, downsample=False)
-    simulated_steps = traj.shape[1]
-    end = time.perf_counter()
-    print(f'Time per step:{((end-start)/simulated_steps):.6f} seconds')
-    print(f'Probability: {prob:.3f}')
-
-'''
-    roots_off = np.vectorize(DW_model.off_dict.get)(times)
-    roots_on = np.vectorize(DW_model.on_dict.get)(times)
-    fig, ax = plt.subplots(dpi=250)
-    for i in range(N_traj):
-        ax.plot(traj[i, :, 0], traj[i, :, 1], linewidth=0.8)
-    ax.plot(times, roots_off, label='Off-state')
-    ax.plot(times, roots_on, label='On-state')
-    ax.scatter(init_state[0,0], init_state[0,1], color='black', label='Initial State', s=30, zorder=10)
-    ax.set_xlabel(r"Time $t$")
-    ax.set_ylabel(r"Position $x$")
-    ax.legend()
-    ax.grid()
-    ax.set_title(f"{N_traj} Trajectories with mu={mu} & noise = {noise_factor}")
-    fig.savefig('../temp/trajectories.png')
-    fig, ax = plt.subplots(dpi=250)
-    ax = DW_model.plot_potential(5, ax)
-    ax = DW_model.plot_potential(10, ax)
-    ax = DW_model.plot_potential(15, ax)
-    ax = DW_model.plot_potential(20, ax)
-    ax.legend()
-    ax.grid()
-    ax.set_title(f"Potentials for mu={mu}")
-    fig.savefig('../temp/potentials.png')
-'''
+    # Get MC probabilities for different initial states: Prints and writes results to file
+    N_traj = 100000
+    for init_state in init_states:
+        init_state = np.tile(init_state, (N_traj,1))
+        prob = DW_model.simulate_AMS_MC(init_state, N_traj = N_traj, filepath='../temp/MC_results.txt')
 
 
-
-
-""" mu = 0.03
-    noise_factor = 0.05
-    model = DoubleWell_1D(mu, noise_factor)
-    N_traj = 10000
-    initial_times = np.arange(0, 4, 0.1, dtype=float)
-    initial_positions = np.arange(-1.0, -0.7, 0.002, dtype=float)
-    print(initial_times, initial_positions)
-    T, P = np.meshgrid(initial_times, initial_positions)
-    filepath = f'../temp/simulation_grid{T.shape[0]*T.shape[1]}_noise_5e2.txt'
-    with tqdm(total=T.shape[0] * T.shape[1]) as pbar:
-        for i in range(T.shape[0]):
-            for j in range(T.shape[1]):
-                init_state = np.array([T[i,j],P[i,j]])
-                init_state = np.tile(init_state, (N_traj,1))
-                _, prob = model.trajectory_AMS(N_traj, init_state, downsample=False)
-                with open(filepath, "a") as f:
-                    f.write(
-                        f"{T[i,j]};{P[i,j]};{prob} \n"
-                    )
-                pbar.update(1)
-    """

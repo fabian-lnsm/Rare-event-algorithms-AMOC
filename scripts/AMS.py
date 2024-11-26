@@ -159,16 +159,18 @@ class AMS():
 
         Returns
         -------
-        Probability_mean, Probability_stddev : (float, float)
-            Tuple containing the result of the runs:
-            - Probability: Mean
-            - Probability: Standard deviation
+        stats : np.array of shape (nb_runs, 3)
 
         '''
-        print(f'Running {nb_runs} simulations...', flush=True)
-        self.init = init_state[0,:]
+        # reset class properties and print some information
+        self.init_state = init_state[0,:]
         self.nb_runs = nb_runs
+        print('-'*20, flush=True)
+        print('-'*20, flush=True)
+        print(f'Initial state: {self.init_state}', flush=True)
+        print(f'Running {nb_runs} simulations...', flush=True)
 
+        # Run the simulations
         t_start = time.perf_counter()
         seeds = [np.random.randint(0, 2**16 - 1) for _ in range(nb_runs)]
         with Pool() as pool:
@@ -180,6 +182,7 @@ class AMS():
             stats[i,1] = result['iterations']
             stats[i,2] = result['nb_transitions']
 
+        # print and return results
         t_end = time.perf_counter()
         runtime = t_end - t_start
         self.runtime = runtime
@@ -195,45 +198,47 @@ class AMS():
             f.write(f'Model: g={self.model.noise_factor}, mu={self.model.mu}, runs={self.nb_runs}, N_traj={self.N_traj}, nc={self.nc} \n')
             f.write(f'Score function: {self.score_function}\n')
             f.write(f'Runtime: {self.runtime}\n')
-            f.write(f'Initial state: {self.init}\n')
+            f.write(f'Initial state: {self.init_state}\n')
             f.write(f'Probability: {prob[0]} +/- {prob[1]}\n')
             f.write(f'Iterations: {iter[0]} +/- {iter[1]}\n')
             f.write(f'Transitions: {trans[0]} +/- {trans[1]}\n')
             f.write('\n')
-        print('Results written to', filename, flush=True)
 
         
 if __name__ == "__main__":
 
+    # Import necessary modules
     from DoubleWell_Model import DoubleWell_1D
     from Score_Function import score_x, score_PB
 
-
+    #model parameters
     mu = 0.03
     dt = 0.01
     noise_factor = 0.1
-    model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
-    #score_fct = score_PB(model)
+    DW_model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
+    #score_fct = score_PB(DW_model)
     score_fct = score_x()
 
+    #AMS parameters
     N_traj = 1000
     nc = 10
-    nb_runs = 10
+    nb_runs = 20
 
+    # Initialize AMS algorithm
     AMS_algorithm = AMS(N_traj, nc)
     AMS_algorithm.set_score(score_fct.get_score)
-    AMS_algorithm.set_model(model)
-    AMS_algorithm.set_traj_func(model.trajectory_AMS, downsample=False)
+    AMS_algorithm.set_model(DW_model)
+    AMS_algorithm.set_traj_func(DW_model.trajectory_AMS, downsample=False)
     AMS_algorithm.set_modelroots()
 
-    init_states = np.array([[0.0, -1.0], [4.0, -0.9], [7.0, -0.85], [10.0, -0.75]])
-    #init_state = np.array([[0.0, -1.0]]) #e-9,e-12
-    #init_state = np.array([[2.0, -0.6]]) #e-6,e-9
-    #init_state = np.array([[3.0, -0.4]]) #e-4,e-6
-    #init_state = np.array([[4.0, -0.3]]) #e-2,e-5
-    init_states = np.array([[0.0, -1.0], [2.0, -0.6], [3.0, -0.4], [4.0, -0.3]])
-    for i, init_state in enumerate(init_states):
-        print(f'Initial state {i+1}: {init_state}', flush=True)
+    # Create Initial states
+    init_times = np.array([2.0, 4.0, 7.0, 10.0])
+    init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
+    init_states = np.stack([init_times, init_positions], axis=1)
+    print('Init states: ',init_states)
+
+    # Run AMS algorithm multiple times for each initial state and write results
+    for _, init_state in enumerate(init_states):
         init_state = np.tile(init_state, (N_traj,1))
         results = AMS_algorithm.run_multiple(nb_runs, init_state)
         AMS_algorithm.write_results(results, '../temp/AMS_results.txt')

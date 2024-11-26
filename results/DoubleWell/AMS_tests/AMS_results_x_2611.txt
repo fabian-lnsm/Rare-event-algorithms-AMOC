@@ -1,0 +1,32 @@
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_x.get_score of <Score_Function.score_x object at 0x0000017A6F409040>>
+Runtime: 692.0888919001445
+Initial state: [ 2.         -0.96853005]
+Probability: 5.088599535429553e-07 +/- 1.7414432829747686e-07
+Iterations: 1367.95 +/- 29.105027599693962
+Transitions: 994.8 +/- 2.6872016358247004
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_x.get_score of <Score_Function.score_x object at 0x0000017A6F409040>>
+Runtime: 595.5595654998906
+Initial state: [ 4.         -0.93351693]
+Probability: 8.78521074088867e-06 +/- 2.164521788961153e-06
+Iterations: 1111.9 +/- 20.141342661563712
+Transitions: 995.85 +/- 2.9068883707497264
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_x.get_score of <Score_Function.score_x object at 0x0000017A6F409040>>
+Runtime: 427.3294946998358
+Initial state: [ 7.         -0.87117525]
+Probability: 0.0005751962361706435 +/- 0.00026647440356236907
+Iterations: 710.45 +/- 43.77992209846162
+Transitions: 995.8 +/- 2.7644357947251903
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_x.get_score of <Score_Function.score_x object at 0x0000017A6F409040>>
+Runtime: 274.39593619992957
+Initial state: [10.         -0.78648254]
+Probability: 0.009437933299275947 +/- 0.0010804888791434296
+Iterations: 417.95 +/- 12.57179382586272
+Transitions: 995.0 +/- 3.1288134626740733
+

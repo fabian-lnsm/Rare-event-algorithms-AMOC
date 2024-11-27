@@ -206,9 +206,6 @@ class DoubleWell_1D:
             trajectories = trajectories[:, ::i, :]
         return trajectories
     
-    def _run_single(self, init_state, N_transitions, N_traj, seed):
-        self.reset_seed(seed)
-        return self.simulate_AMS_MC(init_state, N_transitions, N_traj, printing=False)
     
     def simulate_AMS_MC_multiple(
         self,
@@ -224,21 +221,22 @@ class DoubleWell_1D:
         # reset class properties and print some information
         self.nb_runs = nb_runs
         self.init_state = init_state[0,:]
-        print('-'*50)
+        print('-'*50, flush=True)
         print(f'Initial state: {self.init_state}', flush=True)
         print(f'Number of runs: {self.nb_runs}', flush=True)
-        print('-'*50)
+        print('-'*50, flush=True)
 
         # Run the simulations
         t_start = time.perf_counter()
-        seeds = [np.random.randint(0, 2**16 - 1) for _ in range(nb_runs)]
-        with Pool() as pool:
-            results = pool.starmap(self._run_single, [(init_state, N_transitions, N_traj, seed) for seed in seeds])
         stats = np.zeros((nb_runs, 3))
-        for i, result in enumerate(results):
+        seeds = [np.random.randint(0, 2**16 - 1) for _ in range(nb_runs)]
+        for i, seed in enumerate(seeds):
+            print(f'Run {i+1}/{nb_runs}', flush=True)
+            self.reset_seed(seed)
+            result = self.simulate_AMS_MC(init_state, N_transitions, N_traj, printing=False)
             stats[i,0] = result['probability']
             stats[i,1] = result['simulated_traj']
-            stats[i,2] = result['transitions']
+            stats[i,2] = result['transitions']            
         t_end = time.perf_counter()
         runtime = t_end - t_start
         print('Total runtime:', runtime, flush=True)
@@ -283,8 +281,7 @@ class DoubleWell_1D:
             _, _, transit = self.trajectory_AMS(N_traj, init_state, downsample=False)
             transitions += transit
             simulated_traj += N_traj
-            if printing==True:
-                print(f'Current: {simulated_traj} traj with {transitions} transitions', flush=True)
+            print(f'Current: {simulated_traj} traj with {transitions} transitions', flush=True)
         prob = transitions/simulated_traj
         time_end = time.perf_counter()
         runtime = time_end - time_start
@@ -298,7 +295,7 @@ class DoubleWell_1D:
             print(f'Number of transitions: {transitions}')
             print(f'Probability: {prob}')
         
-        return dict ({'probability': prob, 'simulated_traj': simulated_traj, 'transitions': transitions,})
+        return dict ({'probability': prob, 'simulated_traj': simulated_traj, 'transitions': transitions})
         
     
     def trajectory_AMS(
@@ -432,7 +429,7 @@ if __name__ == "__main__":
     DW_model.set_roots(root_times) 
 
     # Set up initial states
-    init_times = np.array([2.0, 4.0, 7.0, 10.0])
+    init_times = np.array([4.0, 7.0, 10.0, 2.0])
     init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
     init_states = np.stack([init_times, init_positions], axis=1)
     print(init_states)
@@ -450,5 +447,5 @@ if __name__ == "__main__":
     N_traj = 100000
     for init_state in init_states:
         init_state = np.tile(init_state, (N_traj,1))
-        stats = DW_model.simulate_AMS_MC_multiple(init_state, nb_runs, N_traj = N_traj, N_transitions=20, filepath='../temp/MC_results.txt')
+        stats = DW_model.simulate_AMS_MC_multiple(init_state, nb_runs, N_traj = N_traj, N_transitions=30, filepath='../temp/MC_results.txt')
     

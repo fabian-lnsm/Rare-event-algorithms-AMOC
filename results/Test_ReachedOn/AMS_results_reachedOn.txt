@@ -1,0 +1,8 @@
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_x.get_score of <Score_Function.score_x object at 0x000001A1B8DD8FE0>>
+Runtime: 487.0448866998777
+Initial state: [ 4.         -0.93351693]
+Probability: 1.01642808599115e-06 +/- 1.8668100765498445e-07
+Iterations: 1184.6 +/- 17.506089166194055
+Transitions: 996.15 +/- 2.4553914898486258
+

@@ -39,7 +39,7 @@ class DoubleWell_1D:
 
         time_current = np.round(traj[..., 0], 2)
         root_on = np.vectorize(self.on_dict.get)(time_current)
-        on = traj[..., 1] < root_on #left of the first root (on-state)
+        on = traj[..., 1] <= root_on #left of the first root (on-state)
         return on
 
     def is_off(self, traj):
@@ -338,15 +338,13 @@ class DoubleWell_1D:
             t_new[active_traj], x_new[active_traj] = self.euler_maruyama(t_current, x_current, self.dt, self.mu, noise_term)
             traj.append(np.stack([t_new, x_new], axis=1))
 
-            #back_to_on = ~self.is_on(traj[i][active_traj]) & self.is_on(traj[i+1][active_traj])
-            reached_on = self.is_on(traj[i+1][active_traj])
+            back_to_on = ~self.is_on(traj[i][active_traj]) & self.is_on(traj[i+1][active_traj])
             reached_off = self.is_off(traj[i+1][active_traj])
             if np.any(reached_off):
                 transitions += np.sum(reached_off)
-            #if np.any(back_to_on):
-            #   transit_back += np.sum(back_to_on)
-            #active_traj = active_traj[np.flatnonzero(~(back_to_on | reached_off))] 
-            active_traj = active_traj[np.flatnonzero(~(reached_on | reached_off))] 
+            if np.any(back_to_on):
+               transit_back += np.sum(back_to_on)
+            active_traj = active_traj[np.flatnonzero(~(back_to_on | reached_off))] 
             i += 1
         
         traj = np.array(traj)

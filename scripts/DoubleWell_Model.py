@@ -339,12 +339,14 @@ class DoubleWell_1D:
             traj.append(np.stack([t_new, x_new], axis=1))
 
             back_to_on = ~self.is_on(traj[i][active_traj]) & self.is_on(traj[i+1][active_traj])
+            #still_on = self.is_on(traj[i+1][active_traj])
             reached_off = self.is_off(traj[i+1][active_traj])
             if np.any(reached_off):
                 transitions += np.sum(reached_off)
             if np.any(back_to_on):
                 transit_back += np.sum(back_to_on)
-            active_traj = active_traj[np.flatnonzero(~(back_to_on | reached_off))]  
+            active_traj = active_traj[np.flatnonzero(~(back_to_on | reached_off))] 
+            #active_traj = active_traj[np.flatnonzero(~(still_on | reached_off))] 
             i += 1
         
         traj = np.array(traj)

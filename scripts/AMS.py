@@ -109,17 +109,18 @@ class AMS():
             w *= (1-len(idx)/self.N_traj)
             Q_min = Q[idx]
 
+            # Clone and mutate
             new_ind = self.rng.choice(other_idx, size=len(idx))
             restart = np.nanargmax(score[new_ind]>=Q_min[:,np.newaxis], axis=1)
             init_clone = traj[new_ind,restart,:]
             new_traj = self.comp_traj(len(idx), init_clone)
             max_length_newtraj = np.max(restart + self.get_true_length(new_traj))
-
             if max_length_newtraj > max_length:
                 traj = np.concatenate((traj, np.full((self.N_traj,max_length_newtraj-max_length,self.dimension),np.nan)), axis=1)
                 score = np.concatenate((score, np.full((self.N_traj,max_length_newtraj-max_length),np.nan)), axis=1)
                 max_length = max_length_newtraj
 
+            # Update trajectories
             for i in range(len(idx)):
                 tr_idx, rs, length = idx[i], restart[i], self.get_true_length(new_traj)[i]
                 traj[tr_idx,:rs+1,:] = traj[new_ind[i],:rs+1,:]
@@ -131,14 +132,10 @@ class AMS():
                 #score[tr_idx, onzone], score[tr_idx, offzone] = 0, 1
                 score[tr_idx, offzone] = 1
 
-                    
-
-            #Prepare next iteration
+            #Prepare next iteration, print and plot sometimes
             k += 1
-            if k % 100 == 0:
+            if k % 1000 == 0:
                 print('Iteration:', k, 'Number of transitions:', np.count_nonzero(Q>=zmax), flush=True)
-            if k % 10 == 0:
-                self.plot_trajectories_during_run(traj, k)
             Q = np.nanmax(score,axis=1)
 
         count_collapse = np.count_nonzero(Q>=zmax)
@@ -236,9 +233,9 @@ if __name__ == "__main__":
     score_fct = score_x()
 
     #AMS parameters
-    N_traj = 100
-    nc = 1
-    nb_runs = 1
+    N_traj = 10000
+    nc = 10
+    nb_runs = 20
 
     # Initialize AMS algorithm
     AMS_algorithm = AMS(N_traj, nc)

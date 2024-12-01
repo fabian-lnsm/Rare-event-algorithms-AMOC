@@ -62,7 +62,7 @@ class DoubleWell_1D:
         off = root_off <= traj[..., 1]
         return off
     
-    def set_roots(self, all_t):
+    def set_roots(self, all_t = None):
         """
         Set the roots of the system for a given time interval.
 
@@ -72,13 +72,14 @@ class DoubleWell_1D:
             The time points for which the roots should be computed.
         
         """
+        if all_t is None:
+            all_t = np.arange(0, 80, 0.01, dtype=float).round(2)
         roots = np.real(np.array([np.roots([-1, 0, 1, self.mu*t]) for t in all_t]))
         self.root_times = all_t
         self.on_dict = dict(zip(all_t.T, roots[:, 1])) #left equilibrium point
         self.off_dict = dict(zip(all_t.T, roots[:, 0])) #right equilibrium point
 
     def plot_OnOff(self, times, ax):
-        self.set_roots(times)
         off_state = np.vectorize(self.off_dict.get)(times)
         on_state = np.vectorize(self.on_dict.get)(times)
         ax.plot(times, off_state, label='On/Off-states', color='blue', linestyle='--')
@@ -425,7 +426,7 @@ if __name__ == "__main__":
     mu = 0.03
     noise_factor = 0.1
     DW_model = DoubleWell_1D(mu, noise_factor)
-    root_times = np.arange(0, 30, 0.01, dtype=float).round(2)  # Time points for which the roots should be computed
+    root_times = np.arange(0, 50, 0.01, dtype=float).round(2)  # Time points for which the roots should be computed
     DW_model.set_roots(root_times) 
 
     # Set up initial states

@@ -24,7 +24,8 @@ class score_x:
         """
         x_value = traj[..., 1]
         score = (x_value + self.equilibrium) / (2 * self.equilibrium)
-        score = np.clip(score, 0, 1)
+        #score = np.clip(score, a_min=0, a_max=1)
+        score = np.clip(score, a_min=None, a_max=1)
         return score
 
 class ScoreFunction_helper:

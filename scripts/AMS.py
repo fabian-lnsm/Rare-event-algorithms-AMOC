@@ -32,8 +32,6 @@ class AMS():
         self.model = model
 
     def set_modelroots(self, times=None):
-        if times is None:
-            times = np.arange(0, 50, 0.01, dtype=float).round(2)
         self.model.set_roots(times)
 
     def set_traj_func(self, traj_function, *fixed_args, **fixed_kwargs):
@@ -98,11 +96,13 @@ class AMS():
         traj = self.comp_traj(self.N_traj, init_state)
         max_length = traj.shape[1]
         score = self.comp_score(traj)
-        onzone = self.model.is_on(traj)
+        #onzone = self.model.is_on(traj)
         offzone = self.model.is_off(traj)
-        score[onzone], score[offzone] = 0, 1
+        #score[onzone], score[offzone] = 0, 1
+        score[offzone] = 1
 
-        Q = np.nanmax(score,axis=1)
+        Q = np.nanmax(score, axis=1)
+
         while len(np.unique(Q)) > self.nc:
             threshold = np.unique(Q)[self.nc-1]
             idx, other_idx = np.flatnonzero(Q<=threshold), np.flatnonzero(Q>threshold)
@@ -126,13 +126,19 @@ class AMS():
                 traj[tr_idx,rs+1:rs+length,:] = new_traj[i,1:length,:]
                 traj[tr_idx,rs+length:,:] = np.nan
                 score[tr_idx,:] = self.comp_score(traj[tr_idx,:,:])
-                onzone = self.model.is_on(traj[tr_idx])
+                #onzone = self.model.is_on(traj[tr_idx])
                 offzone = self.model.is_off(traj[tr_idx])
-                score[tr_idx, onzone], score[tr_idx, offzone] = 0, 1
+                #score[tr_idx, onzone], score[tr_idx, offzone] = 0, 1
+                score[tr_idx, offzone] = 1
+
                     
 
             #Prepare next iteration
             k += 1
+            if k % 100 == 0:
+                print('Iteration:', k, 'Number of transitions:', np.count_nonzero(Q>=zmax), flush=True)
+            if k % 10 == 0:
+                self.plot_trajectories_during_run(traj, k)
             Q = np.nanmax(score,axis=1)
 
         count_collapse = np.count_nonzero(Q>=zmax)
@@ -143,6 +149,16 @@ class AMS():
             'trajectories':traj,
             'scores':score,
             })
+    
+    def plot_trajectories_during_run(self, traj, k):
+        fig, ax = plt.subplots(dpi=250)
+        for i in range(self.N_traj):
+            ax.plot(traj[i,:,0], traj[i,:,1])
+        ax.set_title(f'AMS iteration {k}')
+        ax.set_xlabel('Time t')
+        ax.set_ylabel('Position x')
+        fig.savefig(f'../temp/traj/AMS_{k}.png')
+        plt.close(fig)
     
     def _run_single(self, init_state, seed):
         self.reset_seed(seed)
@@ -220,9 +236,9 @@ if __name__ == "__main__":
     score_fct = score_x()
 
     #AMS parameters
-    N_traj = 1000
-    nc = 10
-    nb_runs = 20
+    N_traj = 100
+    nc = 1
+    nb_runs = 1
 
     # Initialize AMS algorithm
     AMS_algorithm = AMS(N_traj, nc)

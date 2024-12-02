@@ -20,10 +20,11 @@ class AMS():
         self.rng.bit_generator.state = np.random.PCG64(seed).state
 
 
-    def set_score(self, score_function, *fixed_args, **fixed_kwargs):
+    def set_score(self, score_function, clip_onzone = True, *fixed_args, **fixed_kwargs):
         self.score_function = score_function
         self.fixed_args = fixed_args
         self.fixed_kwargs = fixed_kwargs
+        self.clip_onzone = clip_onzone
 
     def comp_score(self, traj):
         return self.score_function(traj, *self.fixed_args, **self.fixed_kwargs)
@@ -96,10 +97,11 @@ class AMS():
         traj = self.comp_traj(self.N_traj, init_state)
         max_length = traj.shape[1]
         score = self.comp_score(traj)
-        #onzone = self.model.is_on(traj)
         offzone = self.model.is_off(traj)
-        #score[onzone], score[offzone] = 0, 1
         score[offzone] = 1
+        if self.clip_onzone:
+            onzone = self.model.is_on(traj)
+            score[onzone] = 0
 
         Q = np.nanmax(score, axis=1)
 
@@ -127,10 +129,11 @@ class AMS():
                 traj[tr_idx,rs+1:rs+length,:] = new_traj[i,1:length,:]
                 traj[tr_idx,rs+length:,:] = np.nan
                 score[tr_idx,:] = self.comp_score(traj[tr_idx,:,:])
-                #onzone = self.model.is_on(traj[tr_idx])
                 offzone = self.model.is_off(traj[tr_idx])
-                #score[tr_idx, onzone], score[tr_idx, offzone] = 0, 1
                 score[tr_idx, offzone] = 1
+                if self.clip_onzone:
+                    onzone = self.model.is_on(traj[tr_idx])
+                    score[tr_idx, onzone] = 0
 
             #Prepare next iteration, print and plot sometimes
             k += 1
@@ -209,7 +212,7 @@ class AMS():
         trans = (np.mean(stats[:,2]), np.std(stats[:,2], ddof=1))
         with open(filename, 'a') as f:
             f.write(f'Model: g={self.model.noise_factor}, mu={self.model.mu}, runs={self.nb_runs}, N_traj={self.N_traj}, nc={self.nc} \n')
-            f.write(f'Score function: {self.score_function}\n')
+            f.write(f'Score function: {self.score_function} with clip_onzone = {self.clip_onzone}\n')
             f.write(f'Runtime: {self.runtime}\n')
             f.write(f'Initial state: {self.init_state}\n')
             f.write(f'Probability: {prob[0]} +/- {prob[1]}\n')
@@ -230,7 +233,7 @@ if __name__ == "__main__":
     noise_factor = 0.1
     DW_model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
     #score_fct = score_PB(DW_model)
-    score_fct = score_x(clip_onzone=True)
+    score_fct = score_x()
 
     #AMS parameters
     N_traj = 10000
@@ -239,7 +242,7 @@ if __name__ == "__main__":
 
     # Initialize AMS algorithm
     AMS_algorithm = AMS(N_traj, nc)
-    AMS_algorithm.set_score(score_fct.get_score)
+    AMS_algorithm.set_score(score_fct.get_score, clip_onzone=False)
     AMS_algorithm.set_model(DW_model)
     AMS_algorithm.set_traj_func(DW_model.trajectory_AMS, downsample=False)
     AMS_algorithm.set_modelroots()

@@ -9,13 +9,8 @@ class score_x:
     Assumes that the equilibrium states are at x=1 and x=-1
     """
 
-    def __init__(self, clip_onzone=True):
+    def __init__(self):
         self.equilibrium = 1  # abs(x-coordinate) of the equilibrium states
-        self.clip_onzone = clip_onzone
-        if self.clip_onzone:
-            print('Score function is clipped to the interval  [0,1]', flush=True)
-        else:
-            print('Score function is in the half-open interval  ]-infty, 1]', flush=True)
 
     def get_score(self, traj : np.array):
         """
@@ -29,10 +24,7 @@ class score_x:
         """
         x_value = traj[..., 1]
         score = (x_value + self.equilibrium) / (2 * self.equilibrium)
-        if self.clip_onzone:
-            score = np.clip(score, a_min=0, a_max=1)
-        else:
-            score = np.clip(score, a_min=None, a_max=1)
+        score = np.clip(score, a_min=None, a_max=1)
         return score
 
 class ScoreFunction_helper:
@@ -68,7 +60,6 @@ class ScoreFunction_helper:
             s = self.normalised_curvilinear_coordinate[closest_point_indices]
             scores[valid_mask] = s * np.exp(-(closest_distances / self.decay_length) ** 2)
 
-        #scores = np.clip(scores, a_min=0, a_max=1)
         scores = np.clip(scores, a_min=None, a_max=1)
         scores = scores.reshape(original_shape)
         return scores

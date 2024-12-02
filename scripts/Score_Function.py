@@ -9,8 +9,13 @@ class score_x:
     Assumes that the equilibrium states are at x=1 and x=-1
     """
 
-    def __init__(self):
+    def __init__(self, clip_onzone=True):
         self.equilibrium = 1  # abs(x-coordinate) of the equilibrium states
+        self.clip_onzone = clip_onzone
+        if self.clip_onzone:
+            print('Score function is clipped to the interval  [0,1]', flush=True)
+        else:
+            print('Score function is in the half-open interval  ]-infty, 1]', flush=True)
 
     def get_score(self, traj : np.array):
         """
@@ -24,8 +29,10 @@ class score_x:
         """
         x_value = traj[..., 1]
         score = (x_value + self.equilibrium) / (2 * self.equilibrium)
-        #score = np.clip(score, a_min=0, a_max=1)
-        score = np.clip(score, a_min=None, a_max=1)
+        if self.clip_onzone:
+            score = np.clip(score, a_min=0, a_max=1)
+        else:
+            score = np.clip(score, a_min=None, a_max=1)
         return score
 
 class ScoreFunction_helper:
@@ -61,7 +68,8 @@ class ScoreFunction_helper:
             s = self.normalised_curvilinear_coordinate[closest_point_indices]
             scores[valid_mask] = s * np.exp(-(closest_distances / self.decay_length) ** 2)
 
-        scores = np.clip(scores, 0, 1)
+        #scores = np.clip(scores, a_min=0, a_max=1)
+        scores = np.clip(scores, a_min=None, a_max=1)
         scores = scores.reshape(original_shape)
         return scores
 
@@ -128,15 +136,22 @@ if __name__=='__main__':
 
     from DoubleWell_Model import DoubleWell_1D
     model = DoubleWell_1D(mu = 0.03)
-    score = score_PB(model, decay_length = 0.2)
+    score_PB = score_PB(model, decay_length = 0.2)
+    score_x = score_x()
 
 
-    traj = np.ones((5,10,2))
-    traj[2:4,5:,:] = np.nan
 
-    import time
-    start = time.perf_counter()
-    scores = score.get_score(traj)
-    print(f'Elapsed time: {time.perf_counter()-start} for {np.prod(traj.shape[:-1])} points')
-    print(scores)
+    # Test the score function
+    fig, ax = plt.subplots(figsize=(10, 5), dpi=250)
+    positions = np.linspace(-1.5, 1.5, 100)
+    times = np.linspace(0, 10, 100)
+    positions, times = np.meshgrid(positions, times)
+    states = np.stack([times, positions], axis=-1)
+    scores = score_x.get_score(states)
+    ax.contourf(times, positions, scores, cmap='viridis', levels=50)
+    ax.set_title(r'Continuous $phi_x$')
+    ax.set_xlabel('Position x')
+    ax.set_ylabel('Score')
+    fig.savefig('../temp/score_x.png')
+
 

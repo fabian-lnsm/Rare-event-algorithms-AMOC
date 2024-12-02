@@ -230,11 +230,11 @@ if __name__ == "__main__":
     noise_factor = 0.1
     DW_model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
     #score_fct = score_PB(DW_model)
-    score_fct = score_x()
+    score_fct = score_x(clip_onzone=True)
 
     #AMS parameters
     N_traj = 10000
-    nc = 10
+    nc = 100
     nb_runs = 20
 
     # Initialize AMS algorithm
@@ -245,8 +245,8 @@ if __name__ == "__main__":
     AMS_algorithm.set_modelroots()
 
     # Create Initial states
-    #init_times = np.array([2.0, 4.0, 7.0, 10.0])
-    init_times = np.array([4.0])
+    init_times = np.array([2.0, 4.0, 7.0, 10.0])
+    #init_times = np.array([4.0])
     init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
     init_states = np.stack([init_times, init_positions], axis=1)
     print('Init states: ',init_states)

@@ -242,7 +242,7 @@ if __name__ == "__main__":
 
     # Initialize AMS algorithm
     AMS_algorithm = AMS(N_traj, nc)
-    AMS_algorithm.set_score(score_fct.get_score, clip_onzone=False)
+    AMS_algorithm.set_score(score_fct.get_score, clip_onzone=True)
     AMS_algorithm.set_model(DW_model)
     AMS_algorithm.set_traj_func(DW_model.trajectory_AMS, downsample=False)
     AMS_algorithm.set_modelroots()

@@ -212,7 +212,7 @@ class AMS():
         trans = (np.mean(stats[:,2]), np.std(stats[:,2], ddof=1))
         with open(filename, 'a') as f:
             f.write(f'Model: g={self.model.noise_factor}, mu={self.model.mu}, runs={self.nb_runs}, N_traj={self.N_traj}, nc={self.nc} \n')
-            f.write(f'Score function: {self.score_function} with clip_onzone = {self.clip_onzone}\n')
+            f.write(f'Score function: {self.score_function} with clip_onzone = {self.clip_onzone} \n')
             f.write(f'Runtime: {self.runtime}\n')
             f.write(f'Initial state: {self.init_state}\n')
             f.write(f'Probability: {prob[0]} +/- {prob[1]}\n')
@@ -232,24 +232,26 @@ if __name__ == "__main__":
     dt = 0.01
     noise_factor = 0.1
     DW_model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
-    #score_fct = score_PB(DW_model)
-    score_fct = score_x()
+    decay_length = 0.5
+    score_fct = score_PB(DW_model, decay_length=decay_length)
+    print('Decay length: ', decay_length, flush=True)
+    #score_fct = score_x()
 
     #AMS parameters
-    N_traj = 10000
-    nc = 100
+    N_traj = 1000
+    nc = 10
     nb_runs = 20
 
     # Initialize AMS algorithm
     AMS_algorithm = AMS(N_traj, nc)
-    AMS_algorithm.set_score(score_fct.get_score, clip_onzone=True)
+    AMS_algorithm.set_score(score_fct.get_score, clip_onzone=False)
     AMS_algorithm.set_model(DW_model)
     AMS_algorithm.set_traj_func(DW_model.trajectory_AMS, downsample=False)
     AMS_algorithm.set_modelroots()
 
     # Create Initial states
-    init_times = np.array([2.0, 4.0, 7.0, 10.0])
-    #init_times = np.array([4.0])
+    #init_times = np.array([2.0, 4.0, 7.0, 10.0])
+    init_times = np.array([7.0])
     init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
     init_states = np.stack([init_times, init_positions], axis=1)
     print('Init states: ',init_states)

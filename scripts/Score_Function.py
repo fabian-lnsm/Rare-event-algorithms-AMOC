@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import KDTree
+from matplotlib.colors import LogNorm
 
 
 
@@ -68,7 +69,7 @@ class score_PB:
     '''
     Pullback attractor as a score function
     '''
-    def __init__(self, model, decay_length=0.2):
+    def __init__(self, model, decay_length):
         self.decay_length = decay_length
         self.model = model
         self.PB_trajectory = model.get_pullback(return_between_equil=True)
@@ -121,28 +122,54 @@ class score_PB:
     def get_score(self, traj):
         return self.score_function(traj)
 
- 
+    
         
 if __name__=='__main__':
 
     from DoubleWell_Model import DoubleWell_1D
     model = DoubleWell_1D(mu = 0.03)
-    score_PB = score_PB(model, decay_length = 0.2)
+    model.set_roots()
+    score_PB = score_PB(model, decay_length = 0.8)
     score_x = score_x()
 
+    
 
+    def plot_PB(fig, ax, model):
+        PB_traj = model.get_pullback(return_between_equil = True)
+        ax.plot(
+                PB_traj[:, 0],
+                PB_traj[:, 1],
+                label="PB attractor",
+                color="black", linewidth=2
+                )
+        return fig, ax
 
-    # Test the score function
-    fig, ax = plt.subplots(figsize=(10, 5), dpi=250)
-    positions = np.linspace(-1.5, 1.5, 100)
-    times = np.linspace(0, 10, 100)
-    positions, times = np.meshgrid(positions, times)
-    states = np.stack([times, positions], axis=-1)
-    scores = score_x.get_score(states)
-    ax.contourf(times, positions, scores, cmap='viridis', levels=50)
-    ax.set_title(r'Continuous $phi_x$')
-    ax.set_xlabel('Position x')
-    ax.set_ylabel('Score')
-    fig.savefig('../temp/score_x.png')
+    def plot_PB_score():
+        t = np.linspace(0, 30, 300)
+        x = np.linspace(-1.5, 1.6, 300)
+        T, X = np.meshgrid(t, x)
+        traj = np.stack((T, X), axis=-1)
+        scores = score_PB.get_score(traj)
+        scores = np.where(scores == 0, 1e-22, scores)
+        fig, ax = plt.subplots()
+        contour=ax.contourf(
+            T, X, scores, cmap='viridis', levels=np.linspace(0,1,51), alpha=0.85
+            )
+        cbar=fig.colorbar(contour)
+        ax.set_xlabel('Time t')
+        ax.set_label('Position x')
+        ax.set_title(f'PB score: Decay length = {score_PB.decay_length}')
+        fig, ax = plot_PB(fig, ax, model)
+        ax.set_xlim(0, 22)
+        ax.set_ylim(-1.1, 1.4)
+        init_times = np.array([2.0, 4.0, 7.0, 10.0])
+        init_positions = np.vectorize(model.on_dict.get)(init_times)
+        init_states = np.stack([init_times, init_positions], axis=1)
+        ax.scatter(init_states[:, 0], init_states[:, 1], color='black', label='Initial states', s=30, zorder=10)
+        fig.savefig('../temp/PB_score.png')
+        plt.show()
+
+    plot_PB_score()
+        
 
 

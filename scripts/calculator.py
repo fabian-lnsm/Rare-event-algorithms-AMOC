@@ -10,8 +10,8 @@ def relative_error(mean, std):
     rel_error = std/mean
     return rel_error
 
-means_x = np.array([5.1, 0.9, 5.7, 9.4])
-std_x = np.array([1.7, 0.2, 2.7, 1.1])
+means_x = np.array([6.9, 1.1, 6.5, 9.7])
+std_x = np.array([5.6, 0.3, 0.5, 0.4])
 
 means_PB = np.array([2.8, 1.6, 3.4, 6.6])
 std_PB = np.array([2.7, 1.0, 1.0, 0.8])

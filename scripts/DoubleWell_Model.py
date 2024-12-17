@@ -430,24 +430,29 @@ if __name__ == "__main__":
     DW_model.set_roots(root_times) 
 
     # Set up initial states
-    #init_times = np.array([4.0, 7.0, 10.0, 2.0])
-    init_times = np.array([4.0])
+    init_times = np.array([2.0, 4.0, 7.0, 10.0])
     init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
     init_states = np.stack([init_times, init_positions], axis=1)
     print(init_states)
 
-    #Plotting phase-space with initial states: Writes plot to file
-    fig, ax = plt.subplots(dpi=250)
-    ax = DW_model.plot_OnOffStates(ax)
-    ax.scatter(init_states[:,0], init_states[:,1], color='black', label='Initial States', s=30, zorder=10)
-    ax = DW_model.plot_pullback(ax)
-    ax.legend()
-    fig.savefig('../temp/phase_space.png')
+    def plot_phase_space():
+        #Plotting phase-space with initial states: Writes plot to file
+        traj, _, _ = DW_model.trajectory_AMS(init_states.shape[0], init_states, downsample=False)
+        fig, ax = plt.subplots(dpi=250)
+        ax = DW_model.plot_OnOffStates(ax)
+        ax.scatter(init_states[:,0], init_states[:,1], color='black', label='Initial States', s=30, zorder=10)
+        ax = DW_model.plot_pullback(ax)
+        ax.set_xlim(0, 28)
+        ax.legend()
+        fig.savefig('../temp/phase_space.png')
+
+    plot_phase_space()
     
-    # Run MC multiple times for each initial state
-    nb_runs = 20
-    N_traj = 100000
-    for init_state in init_states:
-        init_state = np.tile(init_state, (N_traj,1))
-        stats = DW_model.simulate_AMS_MC_multiple(init_state, nb_runs, N_traj = N_traj, N_transitions=30, filepath='../temp/MC_results.txt')
-    
+    def run_MC(init_states):
+        # Run MC multiple times for each initial state
+        nb_runs = 20
+        N_traj = 100000
+        for init_state in init_states:
+            init_state = np.tile(init_state, (N_traj,1))
+            stats = DW_model.simulate_AMS_MC_multiple(init_state, nb_runs, N_traj = N_traj, N_transitions=30, filepath='../temp/MC_results.txt')
+        

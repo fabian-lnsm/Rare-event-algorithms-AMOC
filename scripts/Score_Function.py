@@ -13,6 +13,12 @@ class score_x:
     def __init__(self):
         self.equilibrium = 1  # abs(x-coordinate) of the equilibrium states
 
+    def __str__(self):
+        return f'Class: Simple x-score'
+    
+    def __repr__(self):
+        return f'Class: Simple x-score'
+
     def get_score(self, traj : np.array):
         """
         Parameters
@@ -75,6 +81,12 @@ class score_PB:
         self.PB_trajectory = model.get_pullback(return_between_equil=True)
         self.score_function = self.score_function_maker(self.PB_trajectory, self.decay_length)
 
+    def __str__(self):
+        return f'Class: PB-score with decay length = {self.decay_length}'
+    
+    def __repr__(self):
+        return f'Class: PB-score with decay length = {self.decay_length}'
+
     def curvilinear_coordinate(self, reference_traj):
         '''
         Find the curvilinear coordinate of a trajectory
@@ -129,8 +141,7 @@ if __name__=='__main__':
     from DoubleWell_Model import DoubleWell_1D
     model = DoubleWell_1D(mu = 0.03)
     model.set_roots()
-    score_PB = score_PB(model, decay_length = 0.8)
-    score_x = score_x()
+    scorefct_PB = score_PB(model, decay_length = 0.1)
 
     
 
@@ -144,21 +155,22 @@ if __name__=='__main__':
                 )
         return fig, ax
 
-    def plot_PB_score():
+    def plot_PB_score(decay_length):
+        scorefct_PB = score_PB(model, decay_length = decay_length)
         t = np.linspace(0, 30, 300)
         x = np.linspace(-1.5, 1.6, 300)
         T, X = np.meshgrid(t, x)
         traj = np.stack((T, X), axis=-1)
-        scores = score_PB.get_score(traj)
+        scores = scorefct_PB.get_score(traj)
         scores = np.where(scores == 0, 1e-22, scores)
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(dpi=250)
         contour=ax.contourf(
             T, X, scores, cmap='viridis', levels=np.linspace(0,1,51), alpha=0.85
             )
         cbar=fig.colorbar(contour)
         ax.set_xlabel('Time t')
         ax.set_label('Position x')
-        ax.set_title(f'PB score: Decay length = {score_PB.decay_length}')
+        ax.set_title(f'PB score: Decay length = {scorefct_PB.decay_length:.2f}')
         fig, ax = plot_PB(fig, ax, model)
         ax.set_xlim(0, 22)
         ax.set_ylim(-1.1, 1.4)
@@ -166,10 +178,10 @@ if __name__=='__main__':
         init_positions = np.vectorize(model.on_dict.get)(init_times)
         init_states = np.stack([init_times, init_positions], axis=1)
         ax.scatter(init_states[:, 0], init_states[:, 1], color='black', label='Initial states', s=30, zorder=10)
-        fig.savefig('../temp/PB_score.png')
-        plt.show()
+        fig.savefig(f'../temp/PB_score_{decay_length:.2f}.png')
 
-    plot_PB_score()
+    print(scorefct_PB)
+
         
 
 

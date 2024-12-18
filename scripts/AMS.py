@@ -20,8 +20,9 @@ class AMS():
         self.rng.bit_generator.state = np.random.PCG64(seed).state
 
 
-    def set_score(self, score_function, clip_onzone = True, *fixed_args, **fixed_kwargs):
-        self.score_function = score_function
+    def set_score(self, score_class, clip_onzone = True, *fixed_args, **fixed_kwargs):
+        self.score_class = score_class
+        self.score_function = score_class.get_score
         self.fixed_args = fixed_args
         self.fixed_kwargs = fixed_kwargs
         self.clip_onzone = clip_onzone
@@ -212,7 +213,7 @@ class AMS():
         trans = (np.mean(stats[:,2]), np.std(stats[:,2], ddof=1))
         with open(filename, 'a') as f:
             f.write(f'Model: g={self.model.noise_factor}, mu={self.model.mu}, runs={self.nb_runs}, N_traj={self.N_traj}, nc={self.nc} \n')
-            f.write(f'Score function: {self.score_function} with clip_onzone = {self.clip_onzone} \n')
+            f.write(f'Score function: {self.score_class} & clip_onzone = {self.clip_onzone} \n')
             f.write(f'Runtime: {self.runtime}\n')
             f.write(f'Initial state: {self.init_state}\n')
             f.write(f'Probability: {prob[0]} +/- {prob[1]}\n')
@@ -227,43 +228,48 @@ if __name__ == "__main__":
     from DoubleWell_Model import DoubleWell_1D
     from Score_Function import score_x, score_PB
 
-    #model parameters
-    mu = 0.03
-    dt = 0.01
-    noise_factor = 0.1
-    DW_model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
-    decay_length = 15.0
-    score_fct = score_PB(DW_model, decay_length=decay_length)
-    print('Decay length: ', decay_length, flush=True)
-    #score_fct = score_x()
-
-    #AMS parameters
-    N_traj = 1000
-    nc = 10
-    nb_runs = 20
-
-    # Initialize AMS algorithm
-    AMS_algorithm = AMS(N_traj, nc)
-    AMS_algorithm.set_score(score_fct.get_score, clip_onzone=False)
-    AMS_algorithm.set_model(DW_model)
-    AMS_algorithm.set_traj_func(DW_model.trajectory_AMS, downsample=False)
-    AMS_algorithm.set_modelroots()
-
-    # Create Initial states
-    #init_times = np.array([2.0, 4.0, 7.0, 10.0])
-    init_times = np.array([4.0])
-    init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
-    init_states = np.stack([init_times, init_positions], axis=1)
-    print('Init states: ',init_states)
-
-    # Run AMS algorithm multiple times for each initial state and write results
-    for _, init_state in enumerate(init_states):
-        init_state = np.tile(init_state, (N_traj,1))
-        results = AMS_algorithm.run_multiple(nb_runs, init_state)
-        AMS_algorithm.write_results(results, '../temp/AMS_results.txt')
-
-
    
+
+    def simulation(decay_length):
+
+        # Model
+        mu = 0.03
+        dt = 0.01
+        noise_factor = 0.1
+        DW_model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
+
+        # Score function
+        score_fct = score_PB(DW_model, decay_length=decay_length)
+
+        #AMS parameters
+        N_traj = 1000
+        nc = 10
+        nb_runs = 20
+
+        # Initialize AMS algorithm
+        AMS_algorithm = AMS(N_traj, nc)
+        AMS_algorithm.set_score(score_fct, clip_onzone=False)
+        AMS_algorithm.set_model(DW_model)
+        AMS_algorithm.set_traj_func(DW_model.trajectory_AMS, downsample=False)
+        AMS_algorithm.set_modelroots()
+
+        # Create Initial states
+        #init_times = np.array([2.0, 4.0, 7.0, 10.0])
+        init_times = np.array([10.0])
+        init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
+        init_states = np.stack([init_times, init_positions], axis=1)
+
+        # Run AMS algorithm multiple times for each initial state and write results
+        for _, init_state in enumerate(init_states):
+            init_state = np.tile(init_state, (N_traj,1))
+            results = AMS_algorithm.run_multiple(nb_runs, init_state)
+            AMS_algorithm.write_results(results, '../temp/AMS_results.txt')
+
+
+    decay_lengths = np.array([0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.4, 5.0])
+    print('Decay lengths: ',decay_lengths)
+    for decay_length in decay_lengths:
+        simulation(decay_length)
     
 
 

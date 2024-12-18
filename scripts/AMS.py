@@ -232,7 +232,7 @@ if __name__ == "__main__":
     dt = 0.01
     noise_factor = 0.1
     DW_model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
-    decay_length = 0.5
+    decay_length = 15.0
     score_fct = score_PB(DW_model, decay_length=decay_length)
     print('Decay length: ', decay_length, flush=True)
     #score_fct = score_x()
@@ -251,7 +251,7 @@ if __name__ == "__main__":
 
     # Create Initial states
     #init_times = np.array([2.0, 4.0, 7.0, 10.0])
-    init_times = np.array([7.0])
+    init_times = np.array([4.0])
     init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
     init_states = np.stack([init_times, init_positions], axis=1)
     print('Init states: ',init_states)

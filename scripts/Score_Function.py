@@ -141,7 +141,6 @@ if __name__=='__main__':
     from DoubleWell_Model import DoubleWell_1D
     model = DoubleWell_1D(mu = 0.03)
     model.set_roots()
-    scorefct_PB = score_PB(model, decay_length = 0.1)
 
     
 
@@ -169,7 +168,7 @@ if __name__=='__main__':
             )
         cbar=fig.colorbar(contour)
         ax.set_xlabel('Time t')
-        ax.set_label('Position x')
+        ax.set_ylabel('Position x')
         ax.set_title(f'PB score: Decay length = {scorefct_PB.decay_length:.2f}')
         fig, ax = plot_PB(fig, ax, model)
         ax.set_xlim(0, 22)
@@ -180,7 +179,8 @@ if __name__=='__main__':
         ax.scatter(init_states[:, 0], init_states[:, 1], color='black', label='Initial states', s=30, zorder=10)
         fig.savefig(f'../temp/PB_score_{decay_length:.2f}.png')
 
-    print(scorefct_PB)
+
+    plot_PB_score(1.5)
 
         
 

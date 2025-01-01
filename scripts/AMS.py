@@ -230,20 +230,20 @@ if __name__ == "__main__":
 
    
 
-    def simulation(decay_length):
+    def simulation(init_times, decay_length_PB):
 
         # Model
         mu = 0.03
         dt = 0.01
-        noise_factor = 0.1
+        noise_factor = 0.05
         DW_model = DoubleWell_1D(mu, dt=dt, noise_factor=noise_factor)
 
         # Score function
-        score_fct = score_PB(DW_model, decay_length=decay_length)
+        score_fct = score_PB(DW_model, decay_length=decay_length_PB)
 
         #AMS parameters
-        N_traj = 1000
-        nc = 10
+        N_traj = 10000
+        nc = 100
         nb_runs = 20
 
         # Initialize AMS algorithm
@@ -253,9 +253,7 @@ if __name__ == "__main__":
         AMS_algorithm.set_traj_func(DW_model.trajectory_AMS, downsample=False)
         AMS_algorithm.set_modelroots()
 
-        # Create Initial states
-        #init_times = np.array([2.0, 4.0, 7.0, 10.0])
-        init_times = np.array([10.0])
+        # Create Initial states from init times
         init_positions = np.vectorize(DW_model.on_dict.get)(init_times)
         init_states = np.stack([init_times, init_positions], axis=1)
 
@@ -266,10 +264,10 @@ if __name__ == "__main__":
             AMS_algorithm.write_results(results, '../temp/AMS_results.txt')
 
 
-    decay_lengths = np.array([0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.4, 5.0])
-    print('Decay lengths: ',decay_lengths)
-    for decay_length in decay_lengths:
-        simulation(decay_length)
+    PB_decay_length = 1.5
+    init_times = np.array([2.0, 4.0, 7.0, 10.0])
+    simulation(init_times, PB_decay_length)
+
     
 
 

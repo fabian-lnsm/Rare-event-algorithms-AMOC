@@ -1,0 +1,218 @@
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001A707355850>> with clip_onzone = False 
+Runtime: 698.2292040000902
+Initial state: [ 4.         -0.93351693]
+Probability: 1.7509699578735116e-05 +/- 3.0965409676439208e-06
+Iterations: 1090.7 +/- 17.329925440966953
+Transitions: 995.7 +/- 2.2501461940809184
+Decay length: 0.6
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001A70723C620>> with clip_onzone = False 
+Runtime: 676.8499568999978
+Initial state: [ 4.         -0.93351693]
+Probability: 1.4019106061573621e-05 +/- 1.5229962036679426e-06
+Iterations: 1111.95 +/- 10.575418369228261
+Transitions: 995.0 +/- 3.3717089216940983
+Decay length: 1.2
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001A7024A9FD0>> with clip_onzone = False 
+Runtime: 539.087251399993
+Initial state: [ 4.         -0.93351693]
+Probability: 1.821361884650993e-05 +/- 2.1342952952999365e-06
+Iterations: 1086.05 +/- 11.394712531881202
+Transitions: 995.55 +/- 3.3320611607453077
+Decay length: 1.8
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001A707161FA0>> with clip_onzone = False 
+Runtime: 524.5048553999513
+Initial state: [ 4.         -0.93351693]
+Probability: 1.7731277909538667e-05 +/- 2.659781951644599e-06
+Iterations: 1089.2 +/- 15.17130254963731
+Transitions: 995.75 +/- 2.76966651992238
+Decay length: 2.4
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001A705F1A4E0>> with clip_onzone = False 
+Runtime: 1670.153372800094
+Initial state: [ 4.         -0.93351693]
+Probability: 1.772120460075517e-05 +/- 1.920948950896054e-06
+Iterations: 1088.65 +/- 11.00370750917019
+Transitions: 994.9 +/- 2.989455151906975
+Decay length: 3.0
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001A705D36750>> with clip_onzone = False 
+Runtime: 536.8924567999784
+Initial state: [ 4.         -0.93351693]
+Probability: 1.6922441903924316e-05 +/- 2.6112784844069313e-06
+Iterations: 1093.8 +/- 15.150473329413282
+Transitions: 995.15 +/- 3.3289005613518134
+Decay length: 3.6
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001A705D72720>> with clip_onzone = False 
+Runtime: 586.5204090001062
+Initial state: [ 4.         -0.93351693]
+Probability: 1.6462248504867613e-05 +/- 2.0872235595128045e-06
+Iterations: 1096.05 +/- 12.18918847952864
+Transitions: 993.9 +/- 2.381949665825522
+Decay length: 4.4
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001A70595B020>> with clip_onzone = False 
+Runtime: 533.9741013000021
+Initial state: [ 4.         -0.93351693]
+Probability: 1.8652547971354358e-05 +/- 2.2682656923468642e-06
+Iterations: 1083.75 +/- 12.306930011818118
+Transitions: 995.45 +/- 2.5848750351551657
+Decay length: 5.0
+
+-----------------------------------------------------------------------------
+
+
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001B9EBB14620>> with clip_onzone = False 
+Runtime: 447.71589099999983
+Initial state: [ 7.         -0.87117525]
+Probability: 0.0007478644197659352 +/- 9.596048358582488e-05
+Iterations: 716.6 +/- 13.252209349070023
+Transitions: 996.25 +/- 2.692582403567252
+Decay length: 0.6
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001B9EBBE73E0>> with clip_onzone = False 
+Runtime: 428.7001950000413
+Initial state: [ 7.         -0.87117525]
+Probability: 0.0007257794205572925 +/- 8.514707082546096e-05
+Iterations: 719.45 +/- 11.993309538413927
+Transitions: 995.8 +/- 3.0881777968995174
+Decay length: 1.2
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001B9EA505880>> with clip_onzone = False 
+Runtime: 473.2307521000039
+Initial state: [ 7.         -0.87117525]
+Probability: 0.0006584937350316939 +/- 7.031799440318032e-05
+Iterations: 729.05 +/- 10.435138008821825
+Transitions: 996.35 +/- 2.9249381459946693
+Decay length: 1.8
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001B9EBA85070>> with clip_onzone = False 
+Runtime: 434.3174164999509
+Initial state: [ 7.         -0.87117525]
+Probability: 0.0006999467682192444 +/- 6.16613638508171e-05
+Iterations: 722.7 +/- 8.997660514647244
+Transitions: 995.05 +/- 3.1367935354770364
+Decay length: 2.4
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001B9EBA02270>> with clip_onzone = False 
+Runtime: 424.21511059999466
+Initial state: [ 7.         -0.87117525]
+Probability: 0.0006638290531641145 +/- 8.582926363539744e-05
+Iterations: 728.4 +/- 12.76260986343764
+Transitions: 995.4 +/- 3.185493434470181
+Decay length: 3.0
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001B9EBE48650>> with clip_onzone = False 
+Runtime: 403.8589221999282
+Initial state: [ 7.         -0.87117525]
+Probability: 0.0007097333774945665 +/- 6.66309542033023e-05
+Iterations: 721.3 +/- 9.148482761753735
+Transitions: 994.6 +/- 2.9629288497061568
+Decay length: 3.6
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001B9EA505880>> with clip_onzone = False 
+Runtime: 475.0960710999789
+Initial state: [ 7.         -0.87117525]
+Probability: 0.0007312849587710725 +/- 9.428759011516106e-05
+Iterations: 718.8 +/- 12.738668855517295
+Transitions: 995.7 +/- 3.2943332525637667
+Decay length: 4.4
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: <bound method score_PB.get_score of <Score_Function.score_PB object at 0x000001B9EBA02270>> with clip_onzone = False 
+Runtime: 471.3415616999846
+Initial state: [ 7.         -0.87117525]
+Probability: 0.000782449609818967 +/- 7.262382578537882e-05
+Iterations: 711.7 +/- 9.657830201992905
+Transitions: 995.45 +/- 3.1701734968294715
+Decay length: 5.0
+
+------------------------------------------------------------------------------------
+
+
+
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: Class: PB-score with decay length = 0.6 & clip_onzone = False 
+Runtime: 298.49942760006525
+Initial state: [10.         -0.78648254]
+Probability: 0.010366835055434778 +/- 0.0007940902903629793
+Iterations: 454.35 +/- 7.527318667081225
+Transitions: 995.45 +/- 2.818640956579121
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: Class: PB-score with decay length = 1.2 & clip_onzone = False 
+Runtime: 300.5647673000349
+Initial state: [10.         -0.78648254]
+Probability: 0.010911010517464683 +/- 0.0008281207287413626
+Iterations: 449.45 +/- 7.721978203052703
+Transitions: 996.35 +/- 2.7390932037715268
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: Class: PB-score with decay length = 1.8 & clip_onzone = False 
+Runtime: 294.6334956000792
+Initial state: [10.         -0.78648254]
+Probability: 0.01114655380938673 +/- 0.0008907160816835
+Iterations: 447.2 +/- 7.790682694225537
+Transitions: 994.9 +/- 3.354494235938909
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: Class: PB-score with decay length = 2.4 & clip_onzone = False 
+Runtime: 298.3944144999841
+Initial state: [10.         -0.78648254]
+Probability: 0.010306089023132441 +/- 0.0007375553812147127
+Iterations: 455.0 +/- 7.130365016123501
+Transitions: 995.45 +/- 2.9995613714429368
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: Class: PB-score with decay length = 3.0 & clip_onzone = False 
+Runtime: 296.6046494001057
+Initial state: [10.         -0.78648254]
+Probability: 0.010213285813557672 +/- 0.0006824650637110241
+Iterations: 455.9 +/- 6.766014141902236
+Transitions: 995.75 +/- 3.2747036828583918
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: Class: PB-score with decay length = 3.6 & clip_onzone = False 
+Runtime: 323.25574669998605
+Initial state: [10.         -0.78648254]
+Probability: 0.01089217413554363 +/- 0.0010728337150069799
+Iterations: 449.75 +/- 9.656603957913983
+Transitions: 995.9 +/- 2.5731406163633865
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: Class: PB-score with decay length = 4.4 & clip_onzone = False 
+Runtime: 12809.841927099973
+Initial state: [10.         -0.78648254]
+Probability: 0.010480886530098836 +/- 0.0008478265336334102
+Iterations: 453.4 +/- 8.120150374547455
+Transitions: 995.6 +/- 2.702825032793417
+
+Model: g=0.1, mu=0.03, runs=20, N_traj=1000, nc=10 
+Score function: Class: PB-score with decay length = 5.0 & clip_onzone = False 
+Runtime: 365.8928822999587
+Initial state: [10.         -0.78648254]
+Probability: 0.010359699378777823 +/- 0.0007656834041563668
+Iterations: 454.45 +/- 7.38045070653405
+Transitions: 995.05 +/- 2.584875035155166
+

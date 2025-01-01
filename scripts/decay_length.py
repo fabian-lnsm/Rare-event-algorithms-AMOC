@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-initial_states = {
+AMS_results_decaylengths = {
     "[ 4.         -0.93351693]": {
         "decay_lengths": [0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.4, 5.0],
         "probabilities": [
@@ -51,14 +51,35 @@ initial_states = {
     },
     "[10.         -0.78648254]": {
         "decay_lengths": [0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.4, 5.0],
-        "probabilities": [
+        "probabilities": [0.010366835055434778, 
+        0.010911010517464683, 
+        0.01114655380938673, 
+        0.010306089023132441, 
+        0.010213285813557672, 
+        0.01089217413554363, 
+        0.010480886530098836, 
+        0.010359699378777823
         ],
-        "stddevs": [
+        "stddevs": [0.0007940902903629793, 
+        0.0008281207287413626, 
+        0.0008907160816835, 
+        0.0007375553812147127, 
+        0.0006824650637110241, 
+        0.0010728337150069799, 
+        0.0008478265336334102, 
+        0.0007656834041563668
         ]
     },
 }
 
-# MC Results for horizontal lines
+# optimized AMS results
+AMS_results_optimized = [
+    (1.5, 1.61346312308819e-5, 7.5039472683302423e-7), # for t_init=4.0
+    (0,0,0), # for t_init=7.0
+    (0,0,0) # for t_init=10.0
+]
+
+# MC Results
 mc_results = [
     (1.5e-5, 0.3e-5),  # for state t_init=4.0
     (6.7e-4, 0.7e-4),  # for state t_init=7.0
@@ -68,20 +89,28 @@ mc_results = [
 # Create a figure with 3 subplots
 fig, axs = plt.subplots(3, 1, figsize=(8, 12), sharex=True)
 
-for ax, ((state, data), mc_result) in zip(axs, zip(initial_states.items(), mc_results)):
+for ax, ((init_state, AMS_decayLength), mc_result, AMS_optim) in zip(axs, zip(AMS_results_decaylengths.items(), mc_results, AMS_results_optimized)):
     # Plot error bars for data
     ax.errorbar(
-        data["decay_lengths"], data["probabilities"], yerr=data["stddevs"],
+        AMS_decayLength["decay_lengths"], AMS_decayLength["probabilities"], yerr=AMS_decayLength["stddevs"],
                 fmt='o', capsize=5, color='darkblue',
-                label=f"Initial state: {state}"
+                label=f"Initial state: {init_state}"
         )
+    
+    # add precise results
+    AMS_optim_decay, AMS_optim_value, AMS_optim_uncertainty = AMS_optim
+    ax.errorbar(
+        AMS_optim_decay, AMS_optim_value, yerr=AMS_optim_uncertainty,
+        fmt='o', capsize=5, color='dodgerblue',
+    )
     
     # Plot horizontal line for MC result
     mc_value, mc_uncertainty = mc_result
     ax.axhline(mc_value, color='red', linestyle='--', label="MC result")
-    ax.fill_between([min(data["decay_lengths"]), max(data["decay_lengths"])], 
+    ax.fill_between([min(AMS_decayLength["decay_lengths"]), max(AMS_decayLength["decay_lengths"])], 
                     mc_value - mc_uncertainty, mc_value + mc_uncertainty, 
                     color='purple', alpha=0.2, label="MC uncertainty")
+    
 
     ax.set_ylabel("Probability (avg ± stddev)")
     ax.legend()
